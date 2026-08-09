@@ -9,6 +9,36 @@ const NEXTAUTH_SECRET =
     ? "dev-only-secret-change-before-production"
     : undefined);
 
+/**
+ * Which session cookie to look for.
+ *
+ * next-auth names the cookie `__Secure-next-auth.session-token` on HTTPS and
+ * `next-auth.session-token` otherwise, and getToken() picks between them by reading
+ * NEXTAUTH_URL. This file is bundled separately from authOptions, so anything that file
+ * does to NEXTAUTH_URL at import time is invisible here — the two halves can end up
+ * writing one cookie name and reading the other, which reads exactly like a wrong
+ * password: sign-in succeeds, then the very next guarded page bounces you back to login.
+ *
+ * The request itself already knows the answer and cannot drift from it, so ask that.
+ * x-forwarded-proto first, because behind a proxy the inner URL may say http while the
+ * browser is on https — which is precisely the Vercel case.
+ */
+function usesSecureCookies(request) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0].trim().toLowerCase() === "https";
+  }
+  return request.nextUrl.protocol === "https:";
+}
+
+function readToken(request) {
+  return getToken({
+    req: request,
+    secret: NEXTAUTH_SECRET,
+    secureCookie: usesSecureCookies(request),
+  });
+}
+
 function isPublicPath(pathname) {
   if (pathname === "/") return true;
   if (pathname === "/login" || pathname.startsWith("/login/")) return true;
@@ -33,7 +63,7 @@ export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/admin")) {
-    const token = await getToken({ req: request, secret: NEXTAUTH_SECRET });
+    const token = await readToken(request);
     if (!token || token.role !== "ADMIN") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -56,7 +86,7 @@ export async function proxy(request) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req: request, secret: NEXTAUTH_SECRET });
+  const token = await readToken(request);
 
   if (!token) {
     return NextResponse.redirect(loginRedirectUrl(request, pathname));
