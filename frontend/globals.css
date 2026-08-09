@@ -1,0 +1,576 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400..700;1,400..700&family=Sora:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/*
+ * JanSetu design system.
+ *
+ * Three typefaces, each with one job, so a screen can be read at a glance:
+ *   Sora            body and controls
+ *   STIX Two Text   italic display — headlines and every number that matters
+ *   JetBrains Mono  small uppercase labels, codes, and tabular figures
+ *
+ * The canvas is a warm off-white and the "evidence" surfaces (hero, pickup counter)
+ * are near-black, because those are the two moments the app asks for full attention.
+ */
+
+:root {
+  /* ---- surfaces ---- */
+  --canvas: #f4f6f3;
+  --card: #ffffff;
+  --card-hover: #f7f9f6;
+  --night: #08110d;
+  --night-2: #0e1b14;
+
+  /* ---- ink ---- */
+  --ink: #122019;
+  --ink-2: #42544a;
+  --muted: #5c6f64;
+  --muted-2: #7a8c80;
+  --faint: #a3b0a6;
+  --on-night: #eef5f0;
+  --on-night-muted: rgba(238, 245, 240, 0.66);
+
+  /* ---- lines ---- */
+  --line: #e3e9e2;
+  --line-soft: #eef1ec;
+
+  /* ---- brand ---- */
+  --brand: #147a4c;
+  --brand-strong: #0e5c39;
+  --brand-tint: #eaf4ee;
+  --brand-tint-2: #f0f6f1;
+  --brand-line: #bfe0cc;
+  --neon: #5ee2a0;
+
+  /* ---- status (always paired with a text label, never colour alone) ---- */
+  --warn: #c2933d;
+  --warn-ink: #8a6a2a;
+  --warn-bg: #fbf3e2;
+  --warn-line: #e8b96a;
+  --danger: #d9534f;
+  --danger-ink: #b23b36;
+  --danger-bg: #fbe9e8;
+  --danger-line: #e8a6a1;
+
+  /* ---- typography ---- */
+  --font-display: "STIX Two Text", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Sora", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- legacy aliases kept so shadcn primitives keep resolving ---- */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --surface: var(--card);
+  --surface-muted: var(--brand-tint-2);
+  --primary: var(--brand);
+  --primary-hover: var(--brand-strong);
+  --primary-soft: var(--brand-line);
+  --secondary: var(--brand-tint);
+  --border: var(--line);
+  --success: var(--brand);
+  --danger-legacy: var(--danger);
+  --muted-text: var(--muted);
+  --chart-1: #147a4c;
+  --chart-2: #2ea86f;
+  --chart-3: #0e5c39;
+  --chart-4: #7fc79f;
+  --chart-5: #e07a4f;
+}
+
+@theme inline {
+  /* new palette — usable as bg-canvas / text-ink / border-line / … */
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-tint-2: var(--brand-tint-2);
+  --color-brand-line: var(--brand-line);
+  --color-neon: var(--neon);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* legacy tokens the shadcn primitives read */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-destructive: var(--danger);
+  --color-muted-text: var(--muted-text);
+  --color-text: var(--foreground);
+  --color-primary-foreground: #ffffff;
+  --color-secondary-foreground: var(--brand-strong);
+  --color-muted-foreground: var(--muted);
+  --color-destructive-foreground: #ffffff;
+  --color-input: var(--line);
+  --color-accent: var(--brand-tint);
+  --color-accent-foreground: var(--brand-strong);
+  --color-ring: var(--brand);
+  --color-ring-offset-background: var(--canvas);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--brand-line);
+    color: var(--ink);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- type ---- */
+
+.js-display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.js-num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.js-mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.js-code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- surface ---- */
+
+.js-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(18, 32, 25, 0.05);
+}
+
+.js-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.25s;
+}
+
+.js-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(18, 32, 25, 0.1);
+}
+
+/* Halo + dot field used by the dark hero and the pickup counter. */
+.js-halo {
+  background: radial-gradient(
+    110% 85% at 50% -10%,
+    rgba(94, 226, 160, 0.22) 0%,
+    rgba(94, 226, 160, 0.06) 42%,
+    transparent 70%
+  );
+  animation: haloPulse 6s ease-in-out infinite;
+}
+
+.js-dots {
+  background-image: radial-gradient(rgba(94, 226, 160, 0.16) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(80% 60% at 50% 20%, black, transparent);
+  animation: drift 26s linear infinite;
+}
+
+/* ------------------------------------------------------------ animation ---- */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
+
+.js-float-a {
+  animation: floatA 7s ease-in-out infinite;
+}
+.js-float-b {
+  animation: floatB 8.5s ease-in-out infinite;
+}
+.js-float-c {
+  animation: floatC 6s ease-in-out infinite;
+}
+.js-bar-grow {
+  transform-origin: left;
+  animation: barGrow 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.js-sweep {
+  stroke-dasharray: 1600;
+  animation: sweep 2.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.js-ring {
+  animation: pulseRing 2.2s ease-out infinite;
+}
+.js-blink {
+  animation: blink 2.2s ease-in-out infinite;
+}
+
+@keyframes floatA {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(-1deg);
+  }
+}
+
+@keyframes floatB {
+  0%,
+  100% {
+    transform: translateY(0) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-22px) rotate(2deg);
+  }
+}
+
+@keyframes floatC {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes haloPulse {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 -120px;
+  }
+}
+
+@keyframes sweep {
+  from {
+    stroke-dashoffset: 1600;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .js-float-a,
+  .js-float-b,
+  .js-float-c,
+  .js-halo,
+  .js-dots,
+  .js-ring,
+  .js-blink,
+  .js-bar-grow,
+  .js-sweep,
+  .map-smart-marker-pulse,
+  .map-live-marker,
+  .map-risk-ring,
+  .map-heat-wave,
+  .map-spread-ring,
+  .map-spread-ring-soft,
+  .map-supply-route {
+    animation: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ map ---- */
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  font-family: var(--font-sans);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-tooltip {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(18, 32, 25, 0.14);
+}
+
+.map-smart-marker {
+  align-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(18, 32, 25, 0.26);
+  color: #ffffff;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  width: 26px;
+}
+
+.map-smart-marker-pulse {
+  animation: mapPulse 1.4s ease-in-out infinite;
+}
+
+/* Provisional marker shown while an ASHA is still speaking — amber, larger,
+   and ringed so it never reads as a filed report. */
+.map-live-marker {
+  align-items: center;
+  background: #d97706;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 4px rgba(217, 119, 6, 0.28),
+    0 8px 18px rgba(15, 23, 42, 0.3);
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  height: 34px;
+  justify-content: center;
+  line-height: 1;
+  width: 34px;
+  animation: mapLivePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mapLivePulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(217, 119, 6, 0.3),
+      0 8px 18px rgba(15, 23, 42, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 12px rgba(217, 119, 6, 0),
+      0 8px 18px rgba(15, 23, 42, 0.3);
+  }
+}
+
+.map-emoji-marker {
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 10px 16px rgba(18, 32, 25, 0.24);
+  display: inline-flex;
+  font-size: 15px;
+  height: 30px;
+  justify-content: center;
+  line-height: 1;
+  width: 30px;
+}
+
+.map-cluster-marker {
+  align-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 8px 16px rgba(18, 32, 25, 0.3);
+  color: #ffffff;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.map-risk-ring {
+  animation: riskRingPulse 2.4s ease-in-out infinite;
+}
+
+.map-heat-wave {
+  animation: heatWaveBreath 2.8s ease-in-out infinite;
+}
+
+.map-spread-ring {
+  animation: spreadRingDash 2.2s linear infinite;
+}
+
+.map-spread-ring-soft {
+  animation: spreadRingDash 2.8s linear infinite;
+}
+
+.map-supply-route {
+  animation: supplyFlow 1.8s linear infinite;
+}
+
+@keyframes mapPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(20, 122, 76, 0.45);
+    transform: scale(0.9);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(20, 122, 76, 0);
+    transform: scale(1.06);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(20, 122, 76, 0);
+    transform: scale(0.95);
+  }
+}
+
+@keyframes riskRingPulse {
+  0% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes heatWaveBreath {
+  0% {
+    opacity: 0.52;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0.56;
+  }
+}
+
+@keyframes spreadRingDash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -16;
+  }
+}
+
+@keyframes supplyFlow {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.62;
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: -18;
+    opacity: 0.68;
+  }
+}

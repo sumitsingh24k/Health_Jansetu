@@ -1,0 +1,28 @@
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth/authOptions";
+import { homeForRole } from "@/app/lib/auth/role-home";
+import ProfileClient from "@/app/sehat/profile/profile-client";
+
+export const metadata = {
+  title: "Mera health record — JanSetu",
+};
+
+export default async function ProfilePage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect("/login?callbackUrl=/sehat/profile");
+  }
+  if (session.user.role !== "USER") {
+    redirect(homeForRole(session.user.role));
+  }
+
+  return (
+    <main className="min-h-screen bg-canvas px-4 py-8 md:px-8 md:py-10">
+      <div className="mx-auto w-full max-w-4xl">
+        <ProfileClient user={session.user} />
+      </div>
+    </main>
+  );
+}

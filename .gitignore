@@ -1,0 +1,9 @@
+.env
+venv/
+pycache/
+__pycache__/
+.node_modules/
+.next/
+
+# Interview guides — not part of the product
+JanSetu_Interview_Guide_*.pdf

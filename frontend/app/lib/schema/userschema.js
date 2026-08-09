@@ -1,0 +1,83 @@
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    role: {
+      type: String,
+      required: true,
+      // ASHA / MEDICAL / USER are the three field roles. ADMIN exists only to
+      // approve medical shops and issue ASHA worker IDs — without that gate anyone
+      // could register as a shop and inject stock data into the outbreak signal.
+      enum: ["ADMIN", "ASHA", "MEDICAL", "USER"],
+    },
+    workerId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      validate: {
+        validator(value) {
+          if (this.role !== "ASHA") {
+            return !value;
+          }
+
+          return /^ASHA_\d+$/.test(value || "");
+        },
+        message: "workerId is required only for ASHA and must look like ASHA_001",
+      },
+    },
+    location: {
+      village: {
+        type: String,
+        trim: true,
+      },
+      district: {
+        type: String,
+        trim: true,
+      },
+      latitude: {
+        type: Number,
+        min: -90,
+        max: 90,
+      },
+      longitude: {
+        type: Number,
+        min: -180,
+        max: 180,
+      },
+    },
+    status: {
+      type: String,
+      enum: ["PENDING", "APPROVED"],
+      default() {
+        // Only medical shops wait for approval: their stock numbers feed the
+        // outbreak correlation, so an unverified shop can distort real signals.
+        // Ordinary users sign up and start chatting immediately.
+        return this.role === "MEDICAL" ? "PENDING" : "APPROVED";
+      },
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.models.User || mongoose.model("User", userSchema);
