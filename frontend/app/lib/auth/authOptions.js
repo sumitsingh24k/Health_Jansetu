@@ -3,8 +3,53 @@ import dbConnect from "@/app/lib/dbconnect";
 import User from "@/app/lib/schema/userschema";
 import { verifyPassword } from "@/app/lib/auth/password-utils";
 
-if (!process.env.NEXTAUTH_URL) {
-  process.env.NEXTAUTH_URL = `http://localhost:${process.env.PORT || "3000"}`;
+/**
+ * Where this deployment thinks it lives.
+ *
+ * next-auth builds its sign-in callback out of NEXTAUTH_URL, so a wrong value does not
+ * fail loudly — it succeeds, then sends the user somewhere that isn't the app. The
+ * commonest way to get that wrong is to copy a local .env into a hosting dashboard,
+ * where `http://localhost:3000` is both a perfectly valid string and completely wrong.
+ *
+ * Vercel already tells us the answer, so we ask it rather than asking the operator:
+ *
+ *   VERCEL_PROJECT_PRODUCTION_URL  the stable production domain
+ *   VERCEL_URL                     this specific deployment, unique per preview build
+ *
+ * Preview branches each get their own hostname, which is exactly why hardcoding one
+ * production URL breaks them. An explicitly configured NEXTAUTH_URL still wins — except
+ * when it points at localhost while we are demonstrably not on localhost, because that
+ * combination is never what anyone intended.
+ */
+function resolveAuthUrl() {
+  const configured = (process.env.NEXTAUTH_URL || "").trim();
+  const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_URL);
+  const looksLocal = /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(configured);
+
+  if (configured && !(onVercel && looksLocal)) {
+    return configured;
+  }
+
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const deploymentHost = process.env.VERCEL_URL;
+
+  if (process.env.VERCEL_ENV === "production" && productionHost) {
+    return `https://${productionHost}`;
+  }
+  if (deploymentHost) {
+    return `https://${deploymentHost}`;
+  }
+  if (productionHost) {
+    return `https://${productionHost}`;
+  }
+
+  return `http://localhost:${process.env.PORT || "3000"}`;
+}
+
+process.env.NEXTAUTH_URL = resolveAuthUrl();
+
+if (process.env.VERCEL && /localhost/i.test(process.env.NEXTAUTH_URL)) {
+  console.warn("[auth] Running on Vercel but could not resolve a public URL for callbacks.");
 }
 
 const RESOLVED_NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
