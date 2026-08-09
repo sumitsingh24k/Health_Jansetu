@@ -40,13 +40,26 @@ function transcript(messages) {
  * Built from the last few user turns rather than only the newest one: a conversation
  * where symptoms arrive piece by piece ("pet dard hai" … "haan, do din se" … "ulti bhi")
  * should still find the right medicines on the third turn.
+ *
+ * The turn window alone was not enough. The model is given the whole episode, so it
+ * keeps saying "dast bhi hain" many turns after the fact, while the catalog lookup had
+ * already slid past the turn where dast was mentioned and was searching on "dawai de".
+ * The assistant then reported, accurately, that nothing in its list treated diarrhoea —
+ * having been handed a list built from the wrong words. ORS was in the catalog, in
+ * stock, and over the counter the entire time.
+ *
+ * `symptomHistory` is the episode's accumulated complaint and already exists for the
+ * health profile, so the fix is to search on it too: a symptom named once keeps pulling
+ * its medicine for as long as the episode lasts, which is exactly how long the model
+ * remembers it.
  */
-function retrievalQuery(messages) {
-  return messages
+function retrievalQuery(messages, symptomHistory = []) {
+  const recentTurns = messages
     .filter((message) => message.role === "user")
     .slice(-RETRIEVAL_TURNS)
-    .map((message) => message.content)
-    .join(" ");
+    .map((message) => message.content);
+
+  return [...symptomHistory, ...recentTurns].join(" ");
 }
 
 function extractSymptomKeywords(text, matches) {
@@ -120,7 +133,7 @@ export async function POST(request) {
     // Candidates are only CONTEXT for the model. Nothing here reaches the user unless
     // the model explicitly recommends it below, which is what keeps a greeting from
     // producing medicine cards.
-    const candidates = await findRelevantMedicines(retrievalQuery(chat.messages), {
+    const candidates = await findRelevantMedicines(retrievalQuery(chat.messages, chat.symptomHistory), {
       limit: 6,
       otcOnly: true,
     });
