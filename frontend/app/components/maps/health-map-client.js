@@ -1,6 +1,15 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { Layers } from "lucide-react";
 import L from "leaflet";
 import {
   Circle,
@@ -15,6 +24,21 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
+
+/**
+ * Is there room beside the map for a panel, or does a panel mean covering the map?
+ *
+ * Read through useSyncExternalStore rather than an effect so the server and the first
+ * client render agree (both assume narrow), and so a phone rotated to landscape opens
+ * the panel without a reload.
+ */
+const WIDE_SCREEN_QUERY = "(min-width: 768px)";
+
+function subscribeToWidth(onChange) {
+  const query = window.matchMedia(WIDE_SCREEN_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
 
 const INDIA_CENTER = [22.9734, 78.6569];
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -398,6 +422,21 @@ export default function HealthMapClient({
   pendingReport = null,
 }) {
   const [mapInstance, setMapInstance] = useState(null);
+  /**
+   * The layers panel is 290px of controls sitting on top of the map. On a desktop that
+   * is a corner; on a phone the map is barely wider than the panel, so it covered the
+   * very thing it was supposed to be controlling.
+   *
+   * Open by default where there is room, closed where there is not, and `layersOverride`
+   * remembers the reader's own choice once they make one.
+   */
+  const isWideScreen = useSyncExternalStore(
+    subscribeToWidth,
+    () => window.matchMedia(WIDE_SCREEN_QUERY).matches,
+    () => false
+  );
+  const [layersOverride, setLayersOverride] = useState(null);
+  const layersOpen = layersOverride ?? isWideScreen;
   const [zoomLevel, setZoomLevel] = useState(MAP_BY_ROLE[role]?.zoom || 6);
   const [baseMap, setBaseMap] = useState(MAPBOX_TOKEN ? "mapbox_streets" : "voyager");
   const [layers, setLayers] = useState({
@@ -772,7 +811,7 @@ export default function HealthMapClient({
   const activeBaseMap = BASEMAPS[baseMap] || BASEMAPS.voyager;
 
   return (
-    <div className="relative h-[390px] w-full overflow-hidden rounded-[18px] border border-line shadow-[0_18px_40px_rgba(18,32,25,0.10)] md:h-[560px]">
+    <div className="relative h-[460px] w-full overflow-hidden rounded-[18px] border border-line shadow-[0_18px_40px_rgba(18,32,25,0.10)] md:h-[560px]">
       <MapContainer center={MAP_BY_ROLE[role]?.center || INDIA_CENTER} zoom={MAP_BY_ROLE[role]?.zoom || 6} scrollWheelZoom zoomControl={false} className="h-full w-full">
         <ZoomControl position="topright" />
         <TileLayer
@@ -1207,9 +1246,25 @@ export default function HealthMapClient({
           : null}
       </MapContainer>
 
-      <div className="absolute left-3 top-3 z-[600] w-[290px] rounded-[16px] border border-line bg-card/95 p-3.5 text-xs shadow-[0_20px_44px_rgba(18,32,25,0.16)] backdrop-blur">
-        <p className="js-mono text-[9px] tracking-[0.16em] text-brand">Map Layers</p>
-        <label className="mt-2 block space-y-1">
+      {/* Collapsed, this is a chip in the corner; open, it is the panel. Either way it
+          never exceeds the map it sits on, and scrolls rather than spilling. */}
+      <button
+        type="button"
+        onClick={() => setLayersOverride(!layersOpen)}
+        aria-expanded={layersOpen}
+        className="js-mono absolute left-3 top-3 z-[601] inline-flex items-center gap-1.5 rounded-full border border-line bg-card/95 px-3 py-2 text-[9px] tracking-[0.16em] text-brand shadow-[0_10px_24px_rgba(18,32,25,0.14)] backdrop-blur transition-colors hover:bg-brand-tint"
+      >
+        <Layers size={12} />
+        {layersOpen ? "Chhupaiye" : "Map layers"}
+      </button>
+
+      {/* Capped short of the map's height on a phone so toggling a layer still shows its
+          effect behind the panel, instead of switching things on in the dark. */}
+      <div
+        hidden={!layersOpen}
+        className="absolute left-3 top-14 z-[600] max-h-[55%] w-[min(290px,calc(100%-1.5rem))] overflow-y-auto overscroll-contain rounded-[16px] border border-line bg-card/95 p-3.5 text-xs shadow-[0_20px_44px_rgba(18,32,25,0.16)] backdrop-blur md:max-h-[calc(100%-4.5rem)]"
+      >
+        <label className="block space-y-1">
           <span className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">
             Basemap
           </span>
@@ -1226,7 +1281,7 @@ export default function HealthMapClient({
           </select>
         </label>
 
-        <div className="mt-2 grid grid-cols-2 gap-2 text-ink-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 text-ink-2 sm:grid-cols-2">
           {[
             {
               key: "outbreakZones",
@@ -1273,7 +1328,7 @@ export default function HealthMapClient({
             </label>
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-ink-2">
+        <div className="mt-2 grid grid-cols-1 gap-2 text-ink-2 sm:grid-cols-2">
           {[
             { key: "heatmap", label: "Heatmap" },
             { key: "markers", label: "Case Markers" },
@@ -1281,7 +1336,7 @@ export default function HealthMapClient({
             { key: "ashaWorkers", label: "ASHA" },
             { key: "supply", label: "Supply Flow" },
           ].map((item) => (
-            <label key={item.key} className="inline-flex cursor-pointer items-center gap-1.5">
+            <label key={item.key} className="flex cursor-pointer items-start gap-1.5 leading-snug">
               <input
                 type="checkbox"
                 checked={layers[item.key]}
@@ -1296,25 +1351,25 @@ export default function HealthMapClient({
             </label>
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
           <button
             type="button"
             onClick={focusVillage}
-            className="rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
+            className="rounded-full border border-line bg-card px-2 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
           >
             Village
           </button>
           <button
             type="button"
             onClick={focusDistrict}
-            className="rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
+            className="rounded-full border border-line bg-card px-2 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
           >
             District
           </button>
           <button
             type="button"
             onClick={focusState}
-            className="rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
+            className="rounded-full border border-line bg-card px-2 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand-strong"
           >
             State
           </button>
@@ -1343,7 +1398,7 @@ export default function HealthMapClient({
       </div>
 
       {selectedZone ? (
-        <aside className="absolute bottom-3 right-3 z-[620] w-[min(360px,calc(100%-1.5rem))] rounded-[16px] border border-line bg-card/95 p-3.5 shadow-[0_26px_56px_rgba(18,32,25,0.18)] backdrop-blur">
+        <aside className="absolute bottom-3 right-3 left-3 z-[620] max-h-[70%] overflow-y-auto overscroll-contain rounded-[16px] border border-line bg-card/95 p-3.5 shadow-[0_26px_56px_rgba(18,32,25,0.18)] backdrop-blur sm:left-auto sm:w-[min(360px,calc(100%-1.5rem))]">
           <p className="js-mono text-[9px] tracking-[0.16em] text-brand">
             Area Story Panel
           </p>
