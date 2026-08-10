@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import AreaSearchFields from "@/app/components/location/area-search-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LanguageToggle } from "@/app/components/i18n/language-toggle";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * Shared signup form for the three writing roles.
@@ -17,26 +19,32 @@ import { Input } from "@/components/ui/input";
 const ROLE_CONFIG = {
   ASHA: {
     endpoint: "/api/asha/register",
-    heading: "ASHA Worker Registration",
-    blurb:
-      "Registration ke baad admin approve karega, tabhi login hoga. Aapko ek worker ID milegi.",
-    submitLabel: "ASHA register kijiye",
+    heading: { en: "ASHA Worker Registration", hi: "ASHA Worker Registration" },
+    blurb: {
+      en: "An admin approves the account before you can sign in. You will be given a worker ID.",
+      hi: "Registration ke baad admin approve karega, tabhi login hoga. Aapko ek worker ID milegi.",
+    },
+    submitLabel: { en: "Register as ASHA", hi: "ASHA register kijiye" },
     needsApproval: true,
   },
   MEDICAL: {
     endpoint: "/api/medical/register",
-    heading: "Medical Shop Registration",
-    blurb:
-      "Registration ke baad admin approve karega, tabhi login hoga. Phir aap stock aur pickup manage kar payenge.",
-    submitLabel: "Medical register kijiye",
+    heading: { en: "Medical Shop Registration", hi: "Medical Shop Registration" },
+    blurb: {
+      en: "An admin approves the account before you can sign in. After that you can manage stock and pickups.",
+      hi: "Registration ke baad admin approve karega, tabhi login hoga. Phir aap stock aur pickup manage kar payenge.",
+    },
+    submitLabel: { en: "Register the shop", hi: "Medical register kijiye" },
     needsApproval: true,
   },
   USER: {
     endpoint: "/api/user/register",
-    heading: "Nagrik Registration",
-    blurb:
-      "Register kariye aur turant Sehat Sahayak se baat shuru kijiye. Koi approval ka intezaar nahi.",
-    submitLabel: "Register kijiye",
+    heading: { en: "Citizen Registration", hi: "Nagrik Registration" },
+    blurb: {
+      en: "Register and start talking to Sehat Sahayak straight away. No approval to wait for.",
+      hi: "Register kariye aur turant Sehat Sahayak se baat shuru kijiye. Koi approval ka intezaar nahi.",
+    },
+    submitLabel: { en: "Register", hi: "Register kijiye" },
     needsApproval: false,
   },
 };
@@ -52,6 +60,7 @@ const EMPTY_FORM = {
 };
 
 export default function RegisterForm({ roleLabel = "USER" }) {
+  const t = useT();
   const config = ROLE_CONFIG[roleLabel] || ROLE_CONFIG.USER;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -80,19 +89,23 @@ export default function RegisterForm({ roleLabel = "USER" }) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        toast.error("Registration nahi hua", {
-          description: payload?.message || payload?.error || "Details check karke dobara try kijiye.",
+        toast.error(t("Registration failed", "Registration nahi hua"), {
+          description:
+            payload?.message ||
+            payload?.error ||
+            t("Check the details and try again.", "Details check karke dobara try kijiye."),
         });
         return;
       }
 
-      toast.success("Ho gaya", {
-        description: payload?.message || "Registration complete.",
+      toast.success(t("Done", "Ho gaya"), {
+        description: payload?.message || t("Registration complete.", "Registration complete."),
       });
       setForm(EMPTY_FORM);
     } catch (error) {
-      toast.error("Kuch galat ho gaya", {
-        description: error.message || "Connection check karke dobara try kijiye.",
+      toast.error(t("Something went wrong", "Kuch galat ho gaya"), {
+        description:
+          error.message || t("Check your connection and try again.", "Connection check karke dobara try kijiye."),
       });
     } finally {
       setIsSubmitting(false);
@@ -108,25 +121,28 @@ export default function RegisterForm({ roleLabel = "USER" }) {
         onSubmit={onSubmit}
         className="relative w-full max-w-2xl space-y-5 rounded-[20px] border border-white/[0.12] bg-white/[0.055] p-7 shadow-[0_40px_90px_rgba(0,0,0,0.45)] backdrop-blur-[14px] md:p-9"
       >
+        <div className="flex items-center justify-between gap-3">
         <Link
           href="/"
           className="js-mono inline-block text-[9px] tracking-[0.16em] text-[rgba(238,245,240,0.55)] transition-colors hover:text-neon"
         >
-          &larr; Home
+          &larr; {t("Home", "Home")}
         </Link>
+          <LanguageToggle tone="night" />
+        </div>
 
         <div>
           <h1 className="js-display text-[clamp(1.9rem,4vw,2.5rem)] text-white">
-            {config.heading}
+            {t(config.heading.en, config.heading.hi)}
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-[rgba(238,245,240,0.6)]">
-            {config.blurb}
+            {t(config.blurb.en, config.blurb.hi)}
           </p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <Input
-            placeholder="Poora naam"
+            placeholder={t("Full name", "Poora naam")}
             value={form.name}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             className="border-white/[0.16] bg-white/[0.06] text-white placeholder:text-[rgba(238,245,240,0.35)] hover:border-neon/40 focus-visible:border-neon focus-visible:ring-neon/20"
@@ -134,7 +150,7 @@ export default function RegisterForm({ roleLabel = "USER" }) {
           />
           <Input
             type="email"
-            placeholder="Email"
+            placeholder={t("Email", "Email")}
             value={form.email}
             onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
             className="border-white/[0.16] bg-white/[0.06] text-white placeholder:text-[rgba(238,245,240,0.35)] hover:border-neon/40 focus-visible:border-neon focus-visible:ring-neon/20"
@@ -142,7 +158,7 @@ export default function RegisterForm({ roleLabel = "USER" }) {
           />
           <Input
             type="password"
-            placeholder="Password (kam se kam 6 akshar)"
+            placeholder={t("Password (at least 6 characters)", "Password (kam se kam 6 akshar)")}
             value={form.password}
             onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
             className="border-white/[0.16] bg-white/[0.06] text-white placeholder:text-[rgba(238,245,240,0.35)] hover:border-neon/40 focus-visible:border-neon focus-visible:ring-neon/20"
@@ -164,8 +180,13 @@ export default function RegisterForm({ roleLabel = "USER" }) {
         </div>
 
         <p className="text-[11.5px] leading-relaxed text-[rgba(238,245,240,0.5)]">
-          Gaon aur zila zaroori hai — isi se tay hota hai ki aapka data kis ilaake ka hai
-          {roleLabel === "USER" ? " aur kaunsi medical shop aapki dawai degi." : "."}
+          {t(
+            "Village and district are required — they decide which area your data belongs to",
+            "Gaon aur zila zaroori hai — isi se tay hota hai ki aapka data kis ilaake ka hai"
+          )}
+          {roleLabel === "USER"
+            ? t(" and which medical shop dispenses your medicine.", " aur kaunsi medical shop aapki dawai degi.")
+            : "."}
         </p>
 
         <Button
@@ -173,13 +194,15 @@ export default function RegisterForm({ roleLabel = "USER" }) {
           disabled={isSubmitting}
           className="w-full bg-neon text-[#07130c] shadow-[0_0_28px_rgba(94,226,160,0.3)] hover:bg-neon hover:brightness-105"
         >
-          {isSubmitting ? "Bhej rahe hain…" : config.submitLabel}
+          {isSubmitting
+            ? t("Sending…", "Bhej rahe hain…")
+            : t(config.submitLabel.en, config.submitLabel.hi)}
         </Button>
 
         <p className="text-center text-[13px] text-[rgba(238,245,240,0.6)]">
-          Pehle se account hai?{" "}
+          {t("Already have an account?", "Pehle se account hai?")}{" "}
           <Link href="/login" className="font-semibold text-white hover:text-neon">
-            Login kijiye
+            {t("Sign in", "Login kijiye")}
           </Link>
         </p>
       </form>

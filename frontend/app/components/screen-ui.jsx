@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LanguageToggle } from "@/app/components/i18n/language-toggle";
 
 /**
  * The pieces every signed-in screen is built from.
@@ -25,7 +26,12 @@ export function ScreenHeader({ kicker, title, subtitle, actions }) {
           <p className="mt-2.5 max-w-2xl text-[13.5px] leading-relaxed text-muted">{subtitle}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {/* Every signed-in screen is built on this header, so putting the language switch
+          here puts it in the same place for a resident, a shop, an ASHA and an admin. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {actions}
+        <LanguageToggle />
+      </div>
     </header>
   );
 }

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { readApiPayload, resolveApiError } from "@/app/lib/fetch-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 function toDisplayLabel(item) {
   return item.displayName || `${item.village}, ${item.district}`;
@@ -53,6 +54,7 @@ const NIGHT_INPUT =
   "border-white/[0.16] bg-white/[0.06] text-white placeholder:text-[rgba(238,245,240,0.35)] hover:border-neon/40 focus-visible:border-neon focus-visible:ring-neon/20";
 
 export default function AreaSearchFields({ value, onChange, className = "", tone = "light" }) {
+  const t = useT();
   const skin = TONES[tone] || TONES.light;
   const containerRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -60,7 +62,7 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [helperMessage, setHelperMessage] = useState("Start typing area name for GPS suggestion.");
+  const [helperMessage, setHelperMessage] = useState(null);
 
   const normalizedQuery = useMemo(() => query.trim(), [query]);
 
@@ -76,8 +78,8 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
     setSuggestions([]);
     setShowSuggestions(false);
     setActiveIndex(-1);
-    setHelperMessage("Location selected from suggestion.");
-    toast.success("Location set", { description: toDisplayLabel(location) });
+    setHelperMessage(["Location taken from the suggestion.", "Suggestion se location le li gayi."]);
+    toast.success(t("Location set", "Location set ho gayi"), { description: toDisplayLabel(location) });
   }
 
   useEffect(() => {
@@ -98,9 +100,9 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
       setIsSearching(false);
       setShowSuggestions(false);
       if (normalizedQuery.length === 0) {
-        setHelperMessage("Start typing area name for GPS suggestion.");
+        setHelperMessage(["Start typing an area name for a GPS suggestion.", "Area ka naam likhna shuru kijiye, GPS suggestion aayega."]);
       } else {
-        setHelperMessage("Type at least 3 characters to get location suggestions.");
+        setHelperMessage(["Type at least 3 characters to get location suggestions.", "Kam se kam 3 akshar likhiye, tabhi suggestions aayenge."]);
       }
       return;
     }
@@ -118,7 +120,7 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         const payload = await readApiPayload(response);
 
         if (!response.ok) {
-          throw new Error(resolveApiError(payload, "Location search failed"));
+          throw new Error(resolveApiError(payload, t("Location search failed", "Location search fail ho gayi")));
         }
 
         const options = Array.isArray(payload?.alternatives) ? payload.alternatives : [];
@@ -127,13 +129,17 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         setSuggestions(options);
         setShowSuggestions(true);
         setActiveIndex(options.length ? 0 : -1);
-        setHelperMessage(options.length ? "Select your area from suggestions." : "No matching area found.");
+        setHelperMessage(
+          options.length
+            ? ["Pick your area from the suggestions.", "Suggestions me se apna area chuniye."]
+            : ["No matching area found.", "Koi milta-julta area nahi mila."]
+        );
       } catch (error) {
         if (error.name === "AbortError" || cancelled) return;
         setSuggestions([]);
         setShowSuggestions(false);
         setActiveIndex(-1);
-        setHelperMessage(error.message || "Could not search location right now.");
+        setHelperMessage(error.message || ["Could not search for the location right now.", "Abhi location search nahi ho paayi."]);
       } finally {
         if (!cancelled) {
           setIsSearching(false);
@@ -175,7 +181,7 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         <div className={skin.shell}>
           <Search size={14} className={skin.searchIcon} />
           <Input
-            placeholder="Type area (e.g. Indore, Madhya Pradesh)"
+            placeholder={t("Type an area (e.g. Indore, Madhya Pradesh)", "Area likhiye (jaise Indore, Madhya Pradesh)")}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -194,7 +200,7 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         {showSuggestions && (suggestions.length > 0 || normalizedQuery.length >= 3) ? (
           <div className={skin.menu}>
             {suggestions.length === 0 ? (
-              <p className={skin.menuEmpty}>No results found.</p>
+              <p className={skin.menuEmpty}>{t("No results found.", "Kuch nahi mila.")}</p>
             ) : (
               suggestions.map((item, index) => (
                 <Button
@@ -217,18 +223,22 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         ) : null}
       </div>
 
-      <p className={skin.helper}>{helperMessage}</p>
+      <p className={skin.helper}>
+        {Array.isArray(helperMessage)
+          ? t(helperMessage[0], helperMessage[1])
+          : helperMessage ?? t("Start typing an area name for a GPS suggestion.", "Area ka naam likhna shuru kijiye, GPS suggestion aayega.")}
+      </p>
 
       <div className="grid gap-3 md:grid-cols-2">
         <Input
-          placeholder="Village"
+          placeholder={t("Village", "Gaon")}
           value={value.village}
           onChange={(event) => onChange({ village: event.target.value })}
           className={tone === "night" ? NIGHT_INPUT : ""}
           required
         />
         <Input
-          placeholder="District"
+          placeholder={t("District", "Zila")}
           value={value.district}
           onChange={(event) => onChange({ district: event.target.value })}
           className={tone === "night" ? NIGHT_INPUT : ""}
@@ -240,7 +250,7 @@ export default function AreaSearchFields({ value, onChange, className = "", tone
         <MapPin size={13} className={skin.gpsIcon} />
         {value.latitude && value.longitude
           ? `GPS: ${value.latitude}, ${value.longitude}`
-          : "GPS is auto-filled after selecting suggestion"}
+          : t("GPS fills in once you pick a suggestion", "Suggestion chunte hi GPS apne aap bhar jayega")}
       </div>
     </div>
   );

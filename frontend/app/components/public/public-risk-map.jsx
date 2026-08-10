@@ -11,6 +11,7 @@ import {
   useMap,
 } from "react-leaflet";
 import { RISK_COLOR } from "@/app/lib/chart-theme";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 const INDIA_CENTER = [22.9734, 78.6569];
 
@@ -51,6 +52,7 @@ function titleCase(value) {
  * back to a household from this view.
  */
 export default function PublicRiskMap({ zones = [], focus = null, verdictByZone = null }) {
+  const t = useT();
   const plottable = useMemo(
     () =>
       zones.filter(
@@ -72,7 +74,7 @@ export default function PublicRiskMap({ zones = [], focus = null, verdictByZone 
   if (!plottable.length) {
     return (
       <div className="flex h-[360px] items-center justify-center rounded-[14px] border border-line bg-brand-tint-2 text-sm text-muted-2">
-        Abhi kisi ilaake ka GPS data nahi mila.
+        {t("No area has GPS data yet.", "Abhi kisi ilaake ka GPS data nahi mila.")}
       </div>
     );
   }
@@ -101,7 +103,7 @@ export default function PublicRiskMap({ zones = [], focus = null, verdictByZone 
             pathOptions={{ color: "#147a4c", weight: 2, fillColor: "#147a4c", fillOpacity: 0.18 }}
           >
             <Tooltip direction="top" offset={[0, -6]}>
-              <span className="text-xs font-semibold">Aap yahan hain</span>
+              <span className="text-xs font-semibold">{t("You are here", "Aap yahan hain")}</span>
             </Tooltip>
           </Circle>
         ) : null}
@@ -124,7 +126,7 @@ export default function PublicRiskMap({ zones = [], focus = null, verdictByZone 
           >
             <Tooltip direction="top" offset={[0, -6]}>
               <span className="text-xs font-semibold">
-                {zone.village} — {zone.cases} case ({verdict || zone.riskLevel})
+                {zone.village} — {zone.cases} {t("cases", "case")} ({verdict || zone.riskLevel})
               </span>
             </Tooltip>
 
@@ -134,17 +136,17 @@ export default function PublicRiskMap({ zones = [], focus = null, verdictByZone 
                   {zone.village}, {zone.district}
                 </p>
                 <p>
-                  <strong>Risk:</strong>{" "}
+                  <strong>{t("Risk", "Risk")}:</strong>{" "}
                   <span className="font-semibold">{verdict || zone.riskLevel}</span>
                 </p>
                 <p>
-                  <strong>Naye case:</strong> {zone.cases}
+                  <strong>{t("New cases", "Naye case")}:</strong> {zone.cases}
                 </p>
                 <p>
-                  <strong>Serious:</strong> {zone.criticalCases}
+                  <strong>{t("Serious", "Serious")}:</strong> {zone.criticalCases}
                 </p>
                 <p>
-                  <strong>Sabse zyada:</strong> {titleCase(zone.topDisease)}
+                  <strong>{t("Most common", "Sabse zyada")}:</strong> {titleCase(zone.topDisease)}
                 </p>
               </div>
             </Popup>

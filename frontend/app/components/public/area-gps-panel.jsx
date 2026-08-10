@@ -9,6 +9,7 @@ import {
   titleCaseDisease,
   weekOverWeek,
 } from "@/app/lib/public-area";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * "Meri jagah pe kya chal raha hai" — the whole system, answered for one person
@@ -22,25 +23,34 @@ import {
 
 const VERDICT = {
   RED: {
-    label: "Red zone",
+    label: { en: "Red zone", hi: "Red zone" },
     tone: "border-danger-line bg-danger-bg",
     dot: "bg-danger",
     ink: "text-danger-ink",
-    line: "Dono taraf se ishara hai — ASHA ki report bhi, aur dawai ki bikri bhi.",
+    line: {
+      en: "Both witnesses point the same way — the ASHA's report, and the medicine leaving the counter.",
+      hi: "Dono taraf se ishara hai — ASHA ki report bhi, aur dawai ki bikri bhi.",
+    },
   },
   WATCH: {
-    label: "Watch zone",
+    label: { en: "Watch zone", hi: "Watch zone" },
     tone: "border-warn-line bg-warn-bg",
     dot: "bg-warn",
     ink: "text-warn-ink",
-    line: "Ek taraf se ishara hai. Doosri taraf abhi chup hai, isliye nazar rakhni chahiye.",
+    line: {
+      en: "One side is signalling. The other is quiet for now, so this is worth watching.",
+      hi: "Ek taraf se ishara hai. Doosri taraf abhi chup hai, isliye nazar rakhni chahiye.",
+    },
   },
   CALM: {
-    label: "Safe",
+    label: { en: "Safe", hi: "Safe" },
     tone: "border-brand-line bg-brand-tint",
     dot: "bg-brand",
     ink: "text-brand-strong",
-    line: "Dono taraf shaant hai. Roz ki saavdhani kaafi hai.",
+    line: {
+      en: "Both sides are quiet. Everyday care is enough.",
+      hi: "Dono taraf shaant hai. Roz ki saavdhani kaafi hai.",
+    },
   },
 };
 
@@ -59,6 +69,7 @@ function Witness({ title, speaking, children }) {
 }
 
 export default function AreaGpsPanel({ onFocusArea }) {
+  const t = useT();
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -68,7 +79,12 @@ export default function AreaGpsPanel({ onFocusArea }) {
     setResult(null);
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("Is browser me GPS available nahi hai. Aap neeche ka poora map dekh sakte hain.");
+      setError(
+        t(
+          "This browser has no GPS. You can still see the full map below.",
+          "Is browser me GPS available nahi hai. Aap neeche ka poora map dekh sakte hain."
+        )
+      );
       setStatus("error");
       return;
     }
@@ -87,8 +103,14 @@ export default function AreaGpsPanel({ onFocusArea }) {
     } catch (geoError) {
       setError(
         geoError?.code === 1
-          ? "Location permission nahi mili. Browser me location allow karke dobara try kijiye."
-          : "GPS nahi mil paaya. Khule aasman ke neeche ya dobara koshish kijiye."
+          ? t(
+              "Location permission was refused. Allow location in your browser and try again.",
+              "Location permission nahi mili. Browser me location allow karke dobara try kijiye."
+            )
+          : t(
+              "Could not get a GPS fix. Try again, ideally under open sky.",
+              "GPS nahi mil paaya. Khule aasman ke neeche ya dobara koshish kijiye."
+            )
       );
       setStatus("error");
       return;
@@ -104,7 +126,7 @@ export default function AreaGpsPanel({ onFocusArea }) {
       const allResponse = await fetch("/api/public/dashboard", { cache: "no-store" });
       const allPayload = await allResponse.json().catch(() => ({}));
       if (!allResponse.ok) {
-        throw new Error(allPayload?.message || "Data load nahi hua.");
+        throw new Error(allPayload?.message || t("Could not load the data.", "Data load nahi hua."));
       }
 
       const zones = allPayload?.data?.riskZones || [];
@@ -174,15 +196,15 @@ export default function AreaGpsPanel({ onFocusArea }) {
         verdictByZone: Object.fromEntries(
           verdicts.map(({ zone, verdict }) => [
             `${zone.district}|${zone.village}`,
-            VERDICT[verdict.level].label,
+            t(VERDICT[verdict.level].label.en, VERDICT[verdict.level].label.hi),
           ])
         ),
       });
     } catch (caught) {
-      setError(caught.message || "Data load nahi hua. Thodi der baad try kijiye.");
+      setError(caught.message || t("Could not load the data. Try again shortly.", "Data load nahi hua. Thodi der baad try kijiye."));
       setStatus("error");
     }
-  }, [onFocusArea]);
+  }, [onFocusArea, t]);
 
   const isBusy = status === "locating" || status === "loading";
 
@@ -190,13 +212,15 @@ export default function AreaGpsPanel({ onFocusArea }) {
     <section data-reveal="" className="js-card p-6 md:p-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="js-mono text-[9.5px] tracking-[0.2em] text-brand">Aapka ilaaka</p>
+          <p className="js-mono text-[9.5px] tracking-[0.2em] text-brand">{t("Your area", "Aapka ilaaka")}</p>
           <h3 className="js-display mt-2.5 text-[clamp(1.4rem,2.6vw,1.9rem)] text-ink">
-            Mere yahan kya chal raha hai?
+            {t("What is happening where I am?", "Mere yahan kya chal raha hai?")}
           </h3>
           <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted">
-            GPS se aapka zila pata karke dikhayenge — ilaaka red zone hai ya nahi, pichhle
-            hafte se kya badla, aur aam aadmi ko kya saavdhani rakhni chahiye.
+            {t(
+              "We use GPS to find your district, then show whether it is a red zone, what changed since last week, and what precautions an ordinary person should take.",
+              "GPS se aapka zila pata karke dikhayenge — ilaaka red zone hai ya nahi, pichhle hafte se kya badla, aur aam aadmi ko kya saavdhani rakhni chahiye."
+            )}
           </p>
         </div>
 
@@ -212,10 +236,10 @@ export default function AreaGpsPanel({ onFocusArea }) {
             <Crosshair size={15} />
           )}
           {status === "locating"
-            ? "GPS le rahe hain…"
+            ? t("Getting GPS…", "GPS le rahe hain…")
             : status === "loading"
-              ? "Ilaake ka data…"
-              : "Use current GPS"}
+              ? t("Loading area data…", "Ilaake ka data…")
+              : t("Use current GPS", "Use current GPS")}
         </button>
       </div>
 
@@ -227,8 +251,10 @@ export default function AreaGpsPanel({ onFocusArea }) {
 
       {status === "ready" && result?.empty ? (
         <p className="mt-5 rounded-[14px] border border-line bg-brand-tint-2 px-4 py-3 text-[13px] text-muted">
-          Abhi kisi bhi ilaake ka GPS-wala data nahi hai, isliye aapka zila match nahi kar
-          paaye.
+          {t(
+            "No area has GPS data yet, so we could not match your district.",
+            "Abhi kisi bhi ilaake ka GPS-wala data nahi hai, isliye aapka zila match nahi kar paaye."
+          )}
         </p>
       ) : null}
 
@@ -242,15 +268,19 @@ export default function AreaGpsPanel({ onFocusArea }) {
                 : result.district}
             </span>
             <span className="js-code text-[10.5px] text-muted-2">
-              aapse {result.distanceKm < 1 ? "<1" : Math.round(result.distanceKm)} km
+              {t(
+                `${result.distanceKm < 1 ? "<1" : Math.round(result.distanceKm)} km from you`,
+                `aapse ${result.distanceKm < 1 ? "<1" : Math.round(result.distanceKm)} km`
+              )}
             </span>
           </div>
 
           {result.isFar ? (
             <p className="rounded-[14px] border border-warn-line bg-warn-bg px-4 py-3 text-[12.5px] leading-relaxed text-warn-ink">
-              Aapke aas-paas abhi koi active reporting area nahi hai. Neeche ka data sabse
-              nazdeeki ilaake ka hai, jo lagbhag {Math.round(result.distanceKm)} km door hai —
-              ise apne gaon ka haal maan kar mat chaliye.
+              {t(
+                `There is no active reporting area near you. The data below is from the nearest one, about ${Math.round(result.distanceKm)} km away — do not read it as your own village's situation.`,
+                `Aapke aas-paas abhi koi active reporting area nahi hai. Neeche ka data sabse nazdeeki ilaake ka hai, jo lagbhag ${Math.round(result.distanceKm)} km door hai — ise apne gaon ka haal maan kar mat chaliye.`
+              )}
             </p>
           ) : null}
 
@@ -265,39 +295,53 @@ export default function AreaGpsPanel({ onFocusArea }) {
                   className={`inline-block h-2 w-2 rounded-full ${VERDICT[result.here.verdict.level].dot}`}
                 />
                 <span className={VERDICT[result.here.verdict.level].ink}>
-                  {VERDICT[result.here.verdict.level].label}
+                  {t(
+                    VERDICT[result.here.verdict.level].label.en,
+                    VERDICT[result.here.verdict.level].label.hi
+                  )}
                 </span>
               </p>
               <p className="js-display mt-3 text-[clamp(1.3rem,2.4vw,1.7rem)] text-ink">
-                {titleCaseDisease(result.here.verdict.topDisease) || "Koi ek bimari"} ka ishara.
+                {t(
+                  `A signal for ${titleCaseDisease(result.here.verdict.topDisease) || "one illness"}.`,
+                  `${titleCaseDisease(result.here.verdict.topDisease) || "Koi ek bimari"} ka ishara.`
+                )}
               </p>
               <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
-                {VERDICT[result.here.verdict.level].line}
+                {t(
+                  VERDICT[result.here.verdict.level].line.en,
+                  VERDICT[result.here.verdict.level].line.hi
+                )}
               </p>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Witness title="ASHA ki report" speaking={result.here.verdict.asha.level !== "LOW"}>
+                <Witness
+                  title={t("The ASHA's report", "ASHA ki report")}
+                  speaking={result.here.verdict.asha.level !== "LOW"}
+                >
                   <p className="js-num text-[24px] text-ink">{result.here.verdict.asha.cases}</p>
                   <p className="text-[11.5px] leading-relaxed text-muted">
-                    naye case · {result.here.verdict.asha.criticalCases} serious ·{" "}
-                    {result.here.verdict.asha.reportCount} report (14 din)
+                    {t(
+                      `new cases · ${result.here.verdict.asha.criticalCases} serious · ${result.here.verdict.asha.reportCount} reports (14 days)`,
+                      `naye case · ${result.here.verdict.asha.criticalCases} serious · ${result.here.verdict.asha.reportCount} report (14 din)`
+                    )}
                   </p>
                 </Witness>
 
                 <Witness
-                  title="Medical se dawai"
+                  title={t("Medicine from shops", "Medical se dawai")}
                   speaking={result.here.verdict.medicine.band !== "QUIET"}
                 >
                   <p className="js-num text-[24px] text-ink">
                     {result.here.verdict.medicine.patientEquivalents}
                   </p>
                   <p className="text-[11.5px] leading-relaxed text-muted">
-                    patient-equivalent dawai uthi ·{" "}
+                    {t("patient-equivalents dispensed ·", "patient-equivalent dawai uthi ·")}{" "}
                     {result.here.verdict.medicine.band === "STRONG"
-                      ? "tez"
+                      ? t("strong", "tez")
                       : result.here.verdict.medicine.band === "SOME"
-                        ? "thodi"
-                        : "na ke barabar"}
+                        ? t("some", "thodi")
+                        : t("negligible", "na ke barabar")}
                   </p>
                 </Witness>
               </div>
@@ -306,7 +350,7 @@ export default function AreaGpsPanel({ onFocusArea }) {
 
           {/* Last week vs the week before — the question a person actually asks. */}
           <div className="rounded-[18px] border border-line bg-brand-tint-2 p-5 md:p-6">
-            <p className="js-mono text-[9px] tracking-[0.16em] text-brand">Pichhle hafte se</p>
+            <p className="js-mono text-[9px] tracking-[0.16em] text-brand">{t("Since last week", "Pichhle hafte se")}</p>
 
             {result.week.hasComparison ? (
               <>
@@ -317,27 +361,27 @@ export default function AreaGpsPanel({ onFocusArea }) {
                     <TrendingDown size={20} className="text-brand" />
                   ) : null}
                   {result.week.direction === "UP"
-                    ? "Case badh rahe hain."
+                    ? t("Cases are rising.", "Case badh rahe hain.")
                     : result.week.direction === "DOWN"
-                      ? "Case kam ho rahe hain."
-                      : "Case wahi ke wahi hain."}
+                      ? t("Cases are falling.", "Case kam ho rahe hain.")
+                      : t("Cases are unchanged.", "Case wahi ke wahi hain.")}
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div>
-                    <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">Ye hafta</p>
+                    <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">{t("This week", "Ye hafta")}</p>
                     <p className="js-num mt-1 text-[22px] text-ink">{result.week.thisWeekCases}</p>
                   </div>
                   <div>
                     <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">
-                      Pichhla hafta
+                      {t("Last week", "Pichhla hafta")}
                     </p>
                     <p className="js-num mt-1 text-[22px] text-muted">
                       {result.week.lastWeekCases}
                     </p>
                   </div>
                   <div>
-                    <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">Badlaav</p>
+                    <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">{t("Change", "Badlaav")}</p>
                     <p
                       className={`js-num mt-1 text-[22px] ${
                         result.week.direction === "UP"
@@ -355,16 +399,24 @@ export default function AreaGpsPanel({ onFocusArea }) {
                 </div>
 
                 <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
-                  Serious case: is hafte {result.week.thisWeekCritical}, pichhle hafte{" "}
-                  {result.week.lastWeekCritical}.
+                  {t(
+                    `Serious cases: ${result.week.thisWeekCritical} this week, ${result.week.lastWeekCritical} last week.`,
+                    `Serious case: is hafte ${result.week.thisWeekCritical}, pichhle hafte ${result.week.lastWeekCritical}.`
+                  )}
                   {result.week.deltaPercent === null && result.week.lastWeekCases === 0
-                    ? " Pichhle hafte koi report nahi thi, isliye percent nahi nikala."
+                    ? t(
+                        " There were no reports last week, so no percentage is shown.",
+                        " Pichhle hafte koi report nahi thi, isliye percent nahi nikala."
+                      )
                     : ""}
                 </p>
               </>
             ) : (
               <p className="mt-3 text-[13px] text-muted">
-                Do hafte ka data abhi poora nahi hai, isliye tulna nahi kar sakte.
+                {t(
+                  "Two full weeks of data are not in yet, so no comparison is possible.",
+                  "Do hafte ka data abhi poora nahi hai, isliye tulna nahi kar sakte."
+                )}
               </p>
             )}
           </div>
@@ -373,15 +425,18 @@ export default function AreaGpsPanel({ onFocusArea }) {
             <div className="rounded-[18px] border border-line bg-card p-5 md:p-6">
               <p className="js-mono flex items-center gap-2 text-[9px] tracking-[0.16em] text-brand">
                 <ShieldCheck size={12} />
-                Aam aadmi ke liye
+                {t("For an ordinary person", "Aam aadmi ke liye")}
               </p>
               {/* These come from the server for the GPS point itself, which is not the
                   same place as the verdict above when the nearest activity is far. Saying
                   so stops a calm list from looking like it contradicts a red card. */}
               <p className="mt-2 text-[11.5px] text-muted-2">
                 {result.isFar
-                  ? "Ye salaah aapki apni jagah ke hisaab se hai, upar wale door ke ilaake ki nahi."
-                  : "Aapke 15 km ke daayre ke hisaab se."}
+                  ? t(
+                      "This advice is for where you are, not for the distant area shown above.",
+                      "Ye salaah aapki apni jagah ke hisaab se hai, upar wale door ke ilaake ki nahi."
+                    )
+                  : t("Based on a 15 km radius around you.", "Aapke 15 km ke daayre ke hisaab se.")}
               </p>
               <ul className="mt-3.5 space-y-2.5">
                 {result.precautions.map((item, index) => (
@@ -402,7 +457,7 @@ export default function AreaGpsPanel({ onFocusArea }) {
                   {result.nearby?.hospitals?.length ? (
                     <div>
                       <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">
-                        Nazdeeki medical
+                        {t("Nearby medical", "Nazdeeki medical")}
                       </p>
                       {result.nearby.hospitals.slice(0, 3).map((entry) => (
                         <p key={entry.id} className="mt-1.5 text-[12px] text-ink-2">
@@ -417,7 +472,7 @@ export default function AreaGpsPanel({ onFocusArea }) {
                   {result.nearby?.janaushadhi?.length ? (
                     <div>
                       <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">
-                        Janaushadhi (sasti dawai)
+                        {t("Janaushadhi (low-cost medicine)", "Janaushadhi (sasti dawai)")}
                       </p>
                       {result.nearby.janaushadhi.slice(0, 3).map((entry) => (
                         <p key={entry.id} className="mt-1.5 text-[12px] text-ink-2">
@@ -437,7 +492,7 @@ export default function AreaGpsPanel({ onFocusArea }) {
           {result.verdicts.length > 1 ? (
             <div className="rounded-[18px] border border-line bg-card p-5 md:p-6">
               <p className="js-mono text-[9px] tracking-[0.16em] text-brand">
-                {result.district} ke doosre ilaake
+                {t(`Other areas in ${result.district}`, `${result.district} ke doosre ilaake`)}
               </p>
               <ul className="mt-3.5 divide-y divide-line-soft">
                 {result.verdicts.map(({ zone, verdict }) => (
@@ -452,7 +507,8 @@ export default function AreaGpsPanel({ onFocusArea }) {
                       <span className="truncate text-[13px] text-ink-2">{zone.village}</span>
                     </span>
                     <span className="js-code shrink-0 text-[10.5px] text-muted-2">
-                      {zone.cases} case · {VERDICT[verdict.level].label}
+                      {zone.cases} {t("cases", "case")} ·{" "}
+                      {t(VERDICT[verdict.level].label.en, VERDICT[verdict.level].label.hi)}
                     </span>
                   </li>
                 ))}
@@ -461,9 +517,10 @@ export default function AreaGpsPanel({ onFocusArea }) {
           ) : null}
 
           <p className="js-code text-[10.5px] leading-relaxed text-muted-2">
-            Sab aankde ilaake ke star par hain — kisi ek ghar ya vyakti ki jaankari yahan nahi
-            aati. Verdict ASHA ki report aur medical dukaan se uthi dawai, dono ko jod kar banta
-            hai.
+            {t(
+              "Every figure is at area level — no single household or person appears here. The verdict is built from the ASHA's report and the medicine leaving shops, together.",
+              "Sab aankde ilaake ke star par hain — kisi ek ghar ya vyakti ki jaankari yahan nahi aati. Verdict ASHA ki report aur medical dukaan se uthi dawai, dono ko jod kar banta hai."
+            )}
           </p>
         </div>
       ) : null}

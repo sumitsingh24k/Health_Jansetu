@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import LoginForm from "@/app/login/login-form";
+import { LanguageToggle } from "@/app/components/i18n/language-toggle";
 
 /** The night surface, shared by sign-in and the landing hero. */
 function AuthBackdrop({ children }) {
@@ -18,6 +19,10 @@ function AuthBackdrop({ children }) {
       >
         JanSetu<span className="text-neon">.</span>
       </Link>
+
+      <div className="absolute top-5 right-6 z-10">
+        <LanguageToggle tone="night" />
+      </div>
 
       <div className="relative w-full max-w-md">{children}</div>
     </main>

@@ -3,6 +3,8 @@
 import { useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/app/components/i18n/language-toggle";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * The dark opening of the landing page.
@@ -22,6 +24,7 @@ const NAV = [
 ];
 
 export default function LandingHero() {
+  const t = useT();
   const tiltRef = useRef(null);
 
   const handleMove = useCallback((event) => {
@@ -76,12 +79,13 @@ export default function LandingHero() {
               {item.label}
             </a>
           ))}
+          <LanguageToggle tone="night" className="ml-1" />
           <Button
             asChild
             size="sm"
             className="ml-2 bg-neon text-[#07130c] shadow-[0_0_26px_rgba(94,226,160,0.35)] hover:bg-neon hover:brightness-105"
           >
-            <Link href="/login">Sign in</Link>
+            <Link href="/login">{t("Sign in", "Sign in")}</Link>
           </Button>
         </nav>
       </div>

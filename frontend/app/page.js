@@ -1,7 +1,10 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import PublicDashboard from "@/app/components/public/public-dashboard";
 import LandingHero from "@/app/components/public/landing-hero";
 import { Button } from "@/components/ui/button";
+import { translatorFor } from "@/app/lib/i18n/locale";
+import { localeFromCookieStore } from "@/app/lib/i18n/server";
 
 /**
  * Landing page.
@@ -16,32 +19,38 @@ const ROLE_REGISTRATIONS = [
   {
     letter: "A",
     title: "ASHA Worker",
-    subtitle: "Field reports",
-    description:
-      "Bol kar report darj kijiye — bimari aur case count apne aap bhar jaate hain, map turant update hota hai.",
+    subtitle: { en: "Field reports", hi: "Field reports" },
+    description: {
+      en: "File a report by speaking — the illness and case counts fill themselves in, and the map updates at once.",
+      hi: "Bol kar report darj kijiye — bimari aur case count apne aap bhar jaate hain, map turant update hota hai.",
+    },
     href: "/register/asha",
-    note: "Admin approval ke baad login hoga",
-    cta: "Register kijiye",
+    note: { en: "Sign-in opens after admin approval", hi: "Admin approval ke baad login hoga" },
+    cta: { en: "Register", hi: "Register kijiye" },
   },
   {
     letter: "M",
     title: "Medical Shop",
-    subtitle: "Stock & pickups",
-    description:
-      "Apna stock manage kijiye, customer ke pickup code confirm kijiye, aur dawai ki demand ka chart dekhiye.",
+    subtitle: { en: "Stock & pickups", hi: "Stock & pickups" },
+    description: {
+      en: "Manage your stock, confirm customers' pickup codes, and watch the medicine demand chart.",
+      hi: "Apna stock manage kijiye, customer ke pickup code confirm kijiye, aur dawai ki demand ka chart dekhiye.",
+    },
     href: "/register/medical",
-    note: "Admin approval ke baad login hoga",
-    cta: "Register kijiye",
+    note: { en: "Sign-in opens after admin approval", hi: "Admin approval ke baad login hoga" },
+    cta: { en: "Register", hi: "Register kijiye" },
   },
   {
     letter: "N",
-    title: "Aam Nagrik",
-    subtitle: "Sehat Sahayak",
-    description:
-      "Apni takleef bataiye, salah lijiye aur zaroorat ki dawai nazdeeki medical par book kar lijiye.",
+    title: { en: "Citizen", hi: "Aam Nagrik" },
+    subtitle: { en: "Sehat Sahayak", hi: "Sehat Sahayak" },
+    description: {
+      en: "Describe what is wrong, get guidance, and book the medicine you need at a nearby shop.",
+      hi: "Apni takleef bataiye, salah lijiye aur zaroorat ki dawai nazdeeki medical par book kar lijiye.",
+    },
     href: "/register/user",
-    note: "Turant shuru — koi wait nahi",
-    cta: "Shuru kijiye",
+    note: { en: "Start straight away — no waiting", hi: "Turant shuru — koi wait nahi" },
+    cta: { en: "Get started", hi: "Shuru kijiye" },
   },
 ];
 
@@ -100,7 +109,10 @@ const VERDICT_KINDS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Read on the server so the first paint is already in the reader's language.
+  const t = translatorFor(localeFromCookieStore(await cookies()));
+
   return (
     <main className="min-h-screen bg-canvas text-ink">
       <LandingHero />
@@ -108,14 +120,16 @@ export default function HomePage() {
       {/* ======================================================== live picture */}
       <section id="live" className="mx-auto w-full max-w-[1200px] scroll-mt-6 px-4 pt-16 md:px-8 md:pt-24">
         <p className="js-mono text-[10.5px] tracking-[0.22em] text-brand">
-          The live picture · no login needed
+          {t("The live picture · no login needed", "The live picture · no login needed")}
         </p>
         <h2 className="js-display mt-3.5 text-[clamp(1.9rem,4vw,2.5rem)] leading-tight">
-          Aapke ilaake me abhi kya chal raha hai.
+          {t("What is happening in your area right now.", "Aapke ilaake me abhi kya chal raha hai.")}
         </h2>
         <p className="mt-3.5 max-w-[540px] text-sm leading-[1.65] text-muted">
-          ASHA workers ki field reports aur medical shops ke confirmed medicine pickups —
-          dono ko jodkar banaya gaya live outbreak picture, lagataar dobara banta hua.
+          {t(
+            "ASHA workers' field reports and medical shops' confirmed medicine pickups — a live outbreak picture built from both, rebuilt continuously.",
+            "ASHA workers ki field reports aur medical shops ke confirmed medicine pickups — dono ko jodkar banaya gaya live outbreak picture, lagataar dobara banta hua."
+          )}
         </p>
 
         <div className="mt-9">
@@ -279,32 +293,34 @@ export default function HomePage() {
           Three roles · one engine
         </p>
         <h2 className="js-display mt-3.5 text-[clamp(1.9rem,4vw,2.5rem)]">
-          Data dena hai? Apna role chuniye.
+          {t("Want to contribute data? Pick your role.", "Data dena hai? Apna role chuniye.")}
         </h2>
         <p className="mt-3.5 max-w-2xl text-sm text-muted">
-          Pehle se account hai to seedha{" "}
+          {t("Already have an account? Go straight to", "Pehle se account hai to seedha")}{" "}
           <Link href="/login" className="font-semibold text-brand underline underline-offset-4">
-            login
-          </Link>{" "}
-          kijiye.
+            {t("sign in", "login")}
+          </Link>
+          {t(".", " kijiye.")}
         </p>
 
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {ROLE_REGISTRATIONS.map((role) => (
-            <article key={role.title} data-reveal="" className="js-card js-lift flex flex-col p-6">
+            <article key={role.href} data-reveal="" className="js-card js-lift flex flex-col p-6">
               <span className="js-display grid h-11 w-11 place-items-center rounded-[14px] bg-brand-tint text-[19px] font-semibold text-brand">
                 {role.letter}
               </span>
-              <h3 className="mt-4 text-[15px] font-semibold text-ink">{role.title}</h3>
+              <h3 className="mt-4 text-[15px] font-semibold text-ink">
+                {typeof role.title === "string" ? role.title : t(role.title.en, role.title.hi)}
+              </h3>
               <p className="js-mono mt-1 text-[9px] tracking-[0.16em] text-muted-2">
-                {role.subtitle}
+                {t(role.subtitle.en, role.subtitle.hi)}
               </p>
               <p className="mt-3 flex-1 text-[12.5px] leading-[1.65] text-muted">
-                {role.description}
+                {t(role.description.en, role.description.hi)}
               </p>
-              <p className="js-mono mt-4 text-[9px] tracking-[0.14em] text-faint">{role.note}</p>
+              <p className="js-mono mt-4 text-[9px] tracking-[0.14em] text-faint">{t(role.note.en, role.note.hi)}</p>
               <Button asChild className="mt-4 w-full">
-                <Link href={role.href}>{role.cta}</Link>
+                <Link href={role.href}>{t(role.cta.en, role.cta.hi)}</Link>
               </Button>
             </article>
           ))}
@@ -319,7 +335,10 @@ export default function HomePage() {
               JanSetu<span className="text-neon">.</span>
             </span>
             <span>
-              Surveillance and guidance — not medical advice. Emergency me 108 par call kijiye.
+              {t(
+                "Surveillance and guidance — not medical advice. In an emergency call 108.",
+                "Surveillance and guidance — not medical advice. Emergency me 108 par call kijiye."
+              )}
             </span>
           </p>
           <p className="js-mono text-[10px] tracking-[0.14em]">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AreaGpsPanel from "@/app/components/public/area-gps-panel";
+import { useT } from "@/app/components/i18n/locale-provider";
 import dynamic from "next/dynamic";
 import {
   Bar,
@@ -26,12 +27,18 @@ import {
 
 const PublicRiskMap = dynamic(() => import("@/app/components/public/public-risk-map"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-[360px] items-center justify-center rounded-[14px] border border-line bg-brand-tint-2 text-sm text-muted-2">
-      Map load ho raha hai…
-    </div>
-  ),
+  loading: () => <MapLoading />,
 });
+
+/** Its own component so the loading label speaks the reader's language too. */
+function MapLoading() {
+  const t = useT();
+  return (
+    <div className="flex h-[360px] items-center justify-center rounded-[14px] border border-line bg-brand-tint-2 text-sm text-muted-2">
+      {t("Loading the map…", "Map load ho raha hai…")}
+    </div>
+  );
+}
 
 function shortDate(value) {
   const date = new Date(value);
@@ -46,9 +53,9 @@ function titleCase(value) {
 }
 
 const RISK_LABEL = {
-  HIGH: "Zyada khatra",
-  MEDIUM: "Dhyan dein",
-  LOW: "Kam khatra",
+  HIGH: { en: "High risk", hi: "Zyada khatra" },
+  MEDIUM: { en: "Watch", hi: "Dhyan dein" },
+  LOW: { en: "Low risk", hi: "Kam khatra" },
 };
 
 function StatTile({ label, value, hint, tone = "ink" }) {
@@ -119,6 +126,7 @@ function EmptyNote({ children }) {
 }
 
 export default function PublicDashboard() {
+  const t = useT();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -138,7 +146,7 @@ export default function PublicDashboard() {
         if (cancelled) return;
 
         if (!response.ok) {
-          throw new Error(payload?.message || "Data load nahi hua.");
+          throw new Error(payload?.message || t("Could not load the data.", "Data load nahi hua."));
         }
         setData(payload.data);
       } catch (caught) {
@@ -175,7 +183,7 @@ export default function PublicDashboard() {
   if (isLoading) {
     return (
       <div className="js-card p-10 text-center text-sm text-muted-2">
-        Aapke ilaake ka data load ho raha hai…
+        {t("Loading your area's data…", "Aapke ilaake ka data load ho raha hai…")}
       </div>
     );
   }
@@ -183,7 +191,9 @@ export default function PublicDashboard() {
   if (error) {
     return (
       <div className="rounded-[20px] border border-warn-line bg-warn-bg p-7 text-sm text-warn-ink">
-        <p className="js-mono text-[10px] tracking-[0.18em]">Data abhi nahi mila</p>
+        <p className="js-mono text-[10px] tracking-[0.18em]">
+          {t("No data yet", "Data abhi nahi mila")}
+        </p>
         <p className="mt-2">{error}</p>
       </div>
     );
@@ -195,34 +205,37 @@ export default function PublicDashboard() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Naye case · 14 din" value={summary.totalCases ?? 0} hint={data?.scope} />
+        <StatTile label={t("New cases · 14 days", "Naye case · 14 din")} value={summary.totalCases ?? 0} hint={data?.scope} />
         <StatTile
-          label="Serious case"
+          label={t("Serious cases", "Serious case")}
           value={summary.criticalCases ?? 0}
-          hint="Escalation chahiye"
+          hint={t("Needs escalation", "Escalation chahiye")}
           tone="danger"
         />
         <StatTile
-          label="High risk ilaake"
+          label={t("High risk areas", "High risk ilaake")}
           value={summary.highRiskAreas ?? 0}
-          hint={`${summary.activeAreas ?? 0} ilaake report kar rahe hain`}
+          hint={t(`${summary.activeAreas ?? 0} areas reporting`, `${summary.activeAreas ?? 0} ilaake report kar rahe hain`)}
           tone="warn"
         />
         <StatTile
-          label="Dawai di gayi"
+          label={t("Medicine dispensed", "Dawai di gayi")}
           value={summary.medicineUnitsDispensed ?? 0}
-          hint="Sirf confirmed pickups"
+          hint={t("Confirmed pickups only", "Sirf confirmed pickups")}
           tone="brand"
         />
       </div>
 
       <ChartCard
-        title="Rozana case trend"
-        description="Pichhle 14 din me ASHA workers ne kitne naye case darj kiye."
+        title={t("Daily case trend", "Rozana case trend")}
+        description={t(
+          "How many new cases ASHA workers filed over the last 14 days.",
+          "Pichhle 14 din me ASHA workers ne kitne naye case darj kiye."
+        )}
         legend={
           <>
-            <LegendKey color={SERIES[1]}>Naye case</LegendKey>
-            <LegendKey color={SERIES[2]}>Serious</LegendKey>
+            <LegendKey color={SERIES[1]}>{t("New cases", "Naye case")}</LegendKey>
+            <LegendKey color={SERIES[2]}>{t("Serious", "Serious")}</LegendKey>
           </>
         }
       >
@@ -254,7 +267,7 @@ export default function PublicDashboard() {
               <Line
                 type="monotone"
                 dataKey="cases"
-                name="Naye case"
+                name={t("New cases", "Naye case")}
                 stroke={SERIES[1]}
                 strokeWidth={2.5}
                 dot={{ r: 3, strokeWidth: 0, fill: SERIES[1] }}
@@ -263,7 +276,7 @@ export default function PublicDashboard() {
               <Line
                 type="monotone"
                 dataKey="critical"
-                name="Serious"
+                name={t("Serious", "Serious")}
                 stroke={SERIES[2]}
                 strokeWidth={2}
                 dot={{ r: 3, strokeWidth: 0, fill: SERIES[2] }}
@@ -272,12 +285,15 @@ export default function PublicDashboard() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <EmptyNote>Abhi is ilaake me koi report darj nahi hui.</EmptyNote>
+          <EmptyNote>{t("No reports filed in this area yet.", "Abhi is ilaake me koi report darj nahi hui.")}</EmptyNote>
         )}
       </ChartCard>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <ChartCard title="Kaunsi bimari sabse zyada" description="Case count ke hisaab se.">
+        <ChartCard
+          title={t("Which illness is most common", "Kaunsi bimari sabse zyada")}
+          description={t("By case count.", "Case count ke hisaab se.")}
+        >
           {diseaseData.length ? (
             <ResponsiveContainer width="100%" height={Math.max(180, diseaseData.length * 34)}>
               <BarChart
@@ -308,14 +324,20 @@ export default function PublicDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyNote>Abhi koi data nahi.</EmptyNote>
+            <EmptyNote>{t("No data yet.", "Abhi koi data nahi.")}</EmptyNote>
           )}
         </ChartCard>
 
         <ChartCard
           title="Medicine supply signal"
-          description="Kaunsi dawai sabse zyada uthi. Confirmed pickup hi gine gaye hain."
-          footer="Ye numbers tabhi badhte hain jab medical shop pickup confirm karti hai — sirf order karne se nahi."
+          description={t(
+            "Which medicine moved most. Only confirmed pickups are counted.",
+            "Kaunsi dawai sabse zyada uthi. Confirmed pickup hi gine gaye hain."
+          )}
+          footer={t(
+            "These numbers move only when a shop confirms a pickup — never from placing an order.",
+            "Ye numbers tabhi badhte hain jab medical shop pickup confirm karti hai — sirf order karne se nahi."
+          )}
         >
           {data?.medicineDemand?.length ? (
             <ResponsiveContainer
@@ -350,7 +372,7 @@ export default function PublicDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyNote>Abhi koi confirmed medicine pickup nahi hua.</EmptyNote>
+            <EmptyNote>{t("No confirmed medicine pickup yet.", "Abhi koi confirmed medicine pickup nahi hua.")}</EmptyNote>
           )}
         </ChartCard>
       </div>
@@ -358,9 +380,12 @@ export default function PublicDashboard() {
       <section data-reveal="" className="js-card p-6 md:p-7">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-[15px] font-semibold text-ink">Red zone map</h3>
+            <h3 className="text-[15px] font-semibold text-ink">{t("Red zone map", "Red zone map")}</h3>
             <p className="mt-1 text-xs text-muted-2">
-              Har spot ek ilaaka hai. Rang risk batata hai — label bhi likha hai.
+              {t(
+                "Each spot is one area. Colour shows the risk — the label says it too.",
+                "Har spot ek ilaaka hai. Rang risk batata hai — label bhi likha hai."
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -373,7 +398,7 @@ export default function PublicDashboard() {
                   className="inline-block h-2 w-2 rounded-full"
                   style={{ background: RISK_COLOR[level] }}
                 />
-                {RISK_LABEL[level]}
+                {t(RISK_LABEL[level].en, RISK_LABEL[level].hi)}
               </span>
             ))}
           </div>
@@ -396,34 +421,39 @@ export default function PublicDashboard() {
           onClick={() => setShowTable((current) => !current)}
           className="js-mono text-[10px] tracking-[0.16em] text-brand underline underline-offset-4 transition-colors hover:text-brand-strong"
         >
-          {showTable ? "Table chhupaiye" : "Poora data table me dekhiye"}
+          {showTable
+            ? t("Hide the table", "Table chhupaiye")
+            : t("See the full data as a table", "Poora data table me dekhiye")}
         </button>
 
         {showTable ? (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-sm">
               <caption className="sr-only">
-                Ilaake ke hisaab se case, serious case aur risk level
+                {t(
+                  "Cases, serious cases and risk level by area",
+                  "Ilaake ke hisaab se case, serious case aur risk level"
+                )}
               </caption>
               <thead>
                 <tr className="js-mono border-b border-line text-left text-[9px] tracking-[0.14em] text-faint">
                   <th scope="col" className="py-2.5 pr-3">
-                    Ilaaka
+                    {t("Area", "Ilaaka")}
                   </th>
                   <th scope="col" className="py-2.5 pr-3">
-                    Zila
+                    {t("District", "Zila")}
                   </th>
                   <th scope="col" className="py-2.5 pr-3">
-                    Bimari
+                    {t("Illness", "Bimari")}
                   </th>
                   <th scope="col" className="py-2.5 pr-3 text-right">
-                    Case
+                    {t("Cases", "Case")}
                   </th>
                   <th scope="col" className="py-2.5 pr-3 text-right">
-                    Serious
+                    {t("Serious", "Serious")}
                   </th>
                   <th scope="col" className="py-2.5">
-                    Risk
+                    {t("Risk", "Risk")}
                   </th>
                 </tr>
               </thead>
@@ -464,8 +494,10 @@ export default function PublicDashboard() {
 
       <p className="flex items-start gap-2.5 rounded-[16px] border border-line bg-brand-tint-2 px-4 py-3 text-xs leading-relaxed text-muted">
         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-muted-2" />
-        Ye data ASHA workers ki field reports aur medical shops ke confirmed pickups se banta
-        hai. Ye doctor ki salah ki jagah nahi leta. Takleef ho to nazdeeki PHC jaiye.
+        {t(
+          "This data comes from ASHA workers' field reports and medical shops' confirmed pickups. It does not replace a doctor's advice. If you are unwell, visit your nearest PHC.",
+          "Ye data ASHA workers ki field reports aur medical shops ke confirmed pickups se banta hai. Ye doctor ki salah ki jagah nahi leta. Takleef ho to nazdeeki PHC jaiye."
+        )}
       </p>
     </div>
   );
