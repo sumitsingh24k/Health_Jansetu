@@ -114,13 +114,13 @@ function renderEpisodes(episodes) {
     .join("\n\n");
 }
 
-export const PROFILE_SYSTEM_PROMPT = `You write a personal health profile for one person
+const PROFILE_SYSTEM_PROMPT_TEMPLATE = `You write a personal health profile for one person
 in rural or semi-urban India, from their own history of illnesses.
 
 This is not advice about one illness. It is the long view: what keeps happening to this
 person, why it might keep happening, and what they can change so it happens less.
 
-Write in simple Hinglish (Roman script). Short sentences. A person with basic schooling
+{{VOICE}} Short sentences. A person with basic schooling
 should be able to read it aloud to their family and act on it.
 
 WHAT MAKES THIS USEFUL
@@ -135,12 +135,11 @@ Look for the connection between episodes, not just the list:
 - One thing leading to another: a cough that keeps coming back after every cold.
 
 If there is genuinely no pattern — one or two unrelated episodes — say so plainly and
-keep the advice general. Do not invent a trend from two data points. An honest "abhi
-koi pattern nahi dikh raha" is more useful than a confident wrong story.
+keep the advice general. Do not invent a trend from two data points. An honest "no pattern is visible yet" is more useful than a confident wrong story.
 
 WHAT TO WRITE
 
-headline       — one line summing them up. "Pichhle 4 mahine me 3 baar pet ki takleef."
+headline       — one line summing them up, e.g. "Stomach trouble three times in the last four months."
 overview       — 2 to 4 sentences on what has been happening overall.
 patterns       — the repeating things. Each with the evidence it rests on and what it
                  means for them. Empty if there is honestly no pattern.
@@ -157,7 +156,7 @@ homeKit        — 3 to 5 things worth keeping at home given what keeps happenin
 doctorNotes    — what to tell a doctor at the next visit, including the repeat pattern.
 
 RULES
-- Never diagnose. "Aisa lagta hai", "ho sakta hai" — never "aapko TB hai".
+- Never diagnose. Hedge ("it looks like", "it could be") — never "you have TB".
 - Only name medicines that appear in their history.
 - Do not promise cures or claim this prevents any specific disease.
 - Plain text in every field. No markdown, no asterisks, no bullet characters.
@@ -256,4 +255,22 @@ export function buildProfilePrompt({ user, episodes, orders, areaRisk }) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * The profile is prose the person reads and shows a doctor, so it is written in the
+ * language they chose for everything else rather than in one fixed for them.
+ */
+export function profileSystemPrompt(locale = "en") {
+  const voice =
+    locale === "hi"
+      ? "Write in simple Hinglish (Roman script)."
+      : "Write in simple, plain English. Do not use Hindi or Hinglish.";
+
+  // Stated twice, once in place and once last. A single line early in a long prompt
+  // loses to the examples that follow it; the closing line is the one nearest the
+  // output the model is about to write.
+  return `${PROFILE_SYSTEM_PROMPT_TEMPLATE.replace("{{VOICE}}", voice)}
+
+LANGUAGE: ${voice}`;
 }

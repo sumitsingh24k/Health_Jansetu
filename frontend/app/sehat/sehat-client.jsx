@@ -24,20 +24,23 @@ import {
 } from "@/app/components/prescription/prescription-upload";
 import { Button } from "@/components/ui/button";
 import { Chip, Panel, ScreenHeader, TabNav } from "@/app/components/screen-ui";
+import { useT } from "@/app/components/i18n/locale-provider";
 
+// Sent verbatim to the assistant, so each carries the wording for its own language.
 const STARTERS = [
-  "Namaste",
-  "Mujhe kuch dino se theek nahi lag raha",
-  "Bachche ki tabiyat kharab hai",
-  "Doctor ne ek dawai likhi hai",
+  { en: "Hello", hi: "Namaste" },
+  { en: "I have not been feeling well for a few days", hi: "Mujhe kuch dino se theek nahi lag raha" },
+  { en: "My child is unwell", hi: "Bachche ki tabiyat kharab hai" },
+  { en: "A doctor has prescribed a medicine", hi: "Doctor ne ek dawai likhi hai" },
 ];
 
 const RESIDENT_TABS = [
-  { href: "/sehat", label: "Sehat Sahayak" },
-  { href: "/sehat/profile", label: "Mera health record" },
+  { href: "/sehat", label: { en: "Sehat Sahayak", hi: "Sehat Sahayak" } },
+  { href: "/sehat/profile", label: { en: "My health record", hi: "Mera health record" } },
 ];
 
 function OrderCard({ order }) {
+  const t = useT();
   const tone =
     order.status === "PENDING"
       ? "border-warn-line bg-warn-bg text-warn-ink"
@@ -55,7 +58,7 @@ function OrderCard({ order }) {
       </div>
       {order.pickupCode ? (
         <p className="mt-2">
-          Medical par ye code bataiye:{" "}
+          {t("Give this code at the shop:", "Medical par ye code bataiye:")}{" "}
           <span className="js-code text-base font-semibold tracking-[0.2em]">
             {order.pickupCode}
           </span>
@@ -72,6 +75,7 @@ function OrderCard({ order }) {
 }
 
 function SuggestionCard({ suggestion, onOrder, isOrdering }) {
+  const t = useT();
   const [quantity, setQuantity] = useState(suggestion.typicalQuantity || 1);
 
   return (
@@ -82,13 +86,15 @@ function SuggestionCard({ suggestion, onOrder, isOrdering }) {
           <p className="mt-0.5 text-xs text-muted-2">{suggestion.salt}</p>
         </div>
         <Chip tone={suggestion.schedule === "OTC" ? "brand" : "danger"}>
-          {suggestion.schedule === "OTC" ? "Bina parchi" : "Parchi zaroori"}
+          {suggestion.schedule === "OTC"
+            ? t("No prescription", "Bina parchi")
+            : t("Prescription needed", "Parchi zaroori")}
         </Chip>
       </div>
 
       {suggestion.whyThisMedicine ? (
         <div className="mt-3 rounded-[12px] bg-brand-tint-2 px-3 py-2.5">
-          <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">Ye kyun</p>
+          <p className="js-mono text-[8.5px] tracking-[0.14em] text-muted-2">{t("Why this", "Ye kyun")}</p>
           <p className="mt-1 text-xs leading-relaxed text-ink-2">{suggestion.whyThisMedicine}</p>
         </div>
       ) : (
@@ -97,7 +103,7 @@ function SuggestionCard({ suggestion, onOrder, isOrdering }) {
 
       {suggestion.howToUse ? (
         <div className="mt-2 rounded-[12px] bg-brand-tint px-3 py-2.5">
-          <p className="js-mono text-[8.5px] tracking-[0.14em] text-brand-strong">Kaise lein</p>
+          <p className="js-mono text-[8.5px] tracking-[0.14em] text-brand-strong">{t("How to take it", "Kaise lein")}</p>
           <p className="mt-1 text-xs leading-relaxed text-ink-2">{suggestion.howToUse}</p>
         </div>
       ) : null}
@@ -109,7 +115,7 @@ function SuggestionCard({ suggestion, onOrder, isOrdering }) {
       {suggestion.orderable ? (
         <div className="mt-3 flex items-center gap-2">
           <label className="text-xs text-muted" htmlFor={`qty-${suggestion.sku}`}>
-            Kitni?
+            {t("How many?", "Kitni?")}
           </label>
           <input
             id={`qty-${suggestion.sku}`}
@@ -162,6 +168,7 @@ function GuideSection({ title, items, text }) {
 }
 
 function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-night/50 p-4 backdrop-blur-sm">
       <div className="js-card w-full max-w-2xl p-6 shadow-[0_40px_90px_rgba(8,17,13,0.35)] md:p-8">
@@ -175,7 +182,7 @@ function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Band kijiye"
+            aria-label={t("Close", "Band kijiye")}
             className="rounded-full p-2 text-muted-2 transition-colors hover:bg-brand-tint-2 hover:text-ink"
           >
             <X size={18} />
@@ -188,27 +195,27 @@ function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
 
         {guide.conditionGuess ? (
           <p className="mt-3 text-sm text-muted">
-            <span className="font-semibold text-ink">Kya lagta hai: </span>
+            <span className="font-semibold text-ink">{t("Likely: ", "Kya lagta hai: ")}</span>
             {guide.conditionGuess}
           </p>
         ) : null}
 
         {guide.medicineNotes?.length ? (
           <section className="mt-5">
-            <h3 className="text-sm font-semibold text-ink">Dawai</h3>
+            <h3 className="text-sm font-semibold text-ink">{t("Medicine", "Dawai")}</h3>
             <div className="mt-2 space-y-2">
               {guide.medicineNotes.map((note) => (
                 <div key={note.medicine} className="rounded-[14px] border border-line p-3">
                   <p className="text-sm font-semibold text-ink">{note.medicine}</p>
                   <p className="mt-1 text-xs text-muted">
-                    <span className="font-semibold text-ink-2">Kis liye:</span> {note.purpose}
+                    <span className="font-semibold text-ink-2">{t("What for:", "Kis liye:")}</span> {note.purpose}
                   </p>
                   <p className="text-xs text-muted">
-                    <span className="font-semibold text-ink-2">Kaise lein:</span> {note.howToTake}
+                    <span className="font-semibold text-ink-2">{t("How to take:", "Kaise lein:")}</span> {note.howToTake}
                   </p>
                   {note.caution ? (
                     <p className="mt-1 text-xs text-warn-ink">
-                      <span className="font-semibold">Dhyan de:</span> {note.caution}
+                      <span className="font-semibold">{t("Careful:", "Dhyan de:")}</span> {note.caution}
                     </p>
                   ) : null}
                 </div>
@@ -217,15 +224,15 @@ function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
           </section>
         ) : null}
 
-        <GuideSection title="Roz ka dhyan" items={guide.dailyCare} />
-        <GuideSection title="Halki kasrat / aaram" items={guide.exercise} />
-        <GuideSection title="Bachav" items={guide.precautions} />
+        <GuideSection title={t("Everyday care", "Roz ka dhyan")} items={guide.dailyCare} />
+        <GuideSection title={t("Light exercise / rest", "Halki kasrat / aaram")} items={guide.exercise} />
+        <GuideSection title={t("Precautions", "Bachav")} items={guide.precautions} />
 
         {guide.warningSigns?.length ? (
           <section className="mt-5 rounded-[16px] border border-danger-line bg-danger-bg p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-danger-ink">
               <AlertTriangle size={15} />
-              In nishaniyon par turant doctor
+              {t("See a doctor at once if you notice these", "In nishaniyon par turant doctor")}
             </h3>
             <ol className="mt-2 space-y-1.5">
               {guide.warningSigns.map((sign, index) => (
@@ -238,15 +245,15 @@ function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
           </section>
         ) : null}
 
-        <GuideSection title="Aage kya" text={guide.followUp} />
+        <GuideSection title={t("What next", "Aage kya")} text={guide.followUp} />
 
         <div className="mt-6 flex flex-wrap gap-2.5">
           <Button type="button" onClick={onDownload} disabled={isDownloading}>
             <Download size={15} />
-            {isDownloading ? "Download ho raha…" : "Download kijiye"}
+            {isDownloading ? t("Downloading…", "Download ho raha…") : t("Download", "Download kijiye")}
           </Button>
           <Button type="button" variant="outline" onClick={onClose}>
-            Band kijiye
+            {t("Close", "Band kijiye")}
           </Button>
         </div>
 
@@ -259,6 +266,7 @@ function GuidePanel({ guide, onClose, onDownload, isDownloading }) {
 }
 
 export default function SehatClient({ user }) {
+  const t = useT();
   const scrollRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -314,10 +322,18 @@ export default function SehatClient({ user }) {
     });
 
     if (result.status === "VERIFIED" && result.unlocked?.length) {
-      toast.success("Parchi verify ho gayi", {
-        description: `${result.unlocked.length} dawai book karne ke liye khul gayi.`,
+      toast.success(t("Prescription verified", "Parchi verify ho gayi"), {
+        description: t(
+          `${result.unlocked.length} medicine unlocked for booking.`,
+          `${result.unlocked.length} dawai book karne ke liye khul gayi.`
+        ),
       });
-      send("Maine doctor ki parchi bhej di hai. Ab aage kya karna hai?");
+      send(
+        t(
+          "I have sent the doctor's prescription. What should I do next?",
+          "Maine doctor ki parchi bhej di hai. Ab aage kya karna hai?"
+        )
+      );
     }
   }
 
@@ -341,14 +357,16 @@ export default function SehatClient({ user }) {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        toast.error("Jawab nahi mila", { description: body?.message || "Dobara try kijiye." });
+        toast.error(t("No reply", "Jawab nahi mila"), {
+          description: body?.message || t("Please try again.", "Dobara try kijiye."),
+        });
         return;
       }
 
       setMessages((current) => [...current, { role: "assistant", content: body.data.reply }]);
       setLatest({ ...body.data, question: message });
     } catch (error) {
-      toast.error("Connection problem", { description: error.message });
+      toast.error(t("Connection problem", "Connection problem"), { description: error.message });
     } finally {
       setIsSending(false);
     }
@@ -367,7 +385,9 @@ export default function SehatClient({ user }) {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        toast.error("Order nahi hua", { description: body?.message || "Dobara try kijiye." });
+        toast.error(t("Order failed", "Order nahi hua"), {
+          description: body?.message || t("Please try again.", "Dobara try kijiye."),
+        });
         setLatest((current) =>
           current
             ? {
@@ -383,7 +403,7 @@ export default function SehatClient({ user }) {
         return;
       }
 
-      toast.success("Book ho gaya", { description: body.data.message });
+      toast.success(t("Booked", "Book ho gaya"), { description: body.data.message });
       setLatest((current) =>
         current
           ? {
@@ -416,7 +436,7 @@ export default function SehatClient({ user }) {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        toast.error("Guide nahi bani", { description: body?.message });
+        toast.error(t("Guide not created", "Guide nahi bani"), { description: body?.message });
         return;
       }
       setGuide(body.data);
@@ -434,7 +454,7 @@ export default function SehatClient({ user }) {
       });
 
       if (!response.ok) {
-        toast.error("Download nahi hua");
+        toast.error(t("Download failed", "Download nahi hua"));
         return;
       }
 
@@ -459,8 +479,8 @@ export default function SehatClient({ user }) {
     setMessages([]);
     setLatest(null);
     setGuide(null);
-    toast.success("Purani baat record me save ho gayi", {
-      description: "Ab nayi takleef bataiye.",
+    toast.success(t("Saved to your record", "Purani baat record me save ho gayi"), {
+      description: t("Now tell me the new problem.", "Ab nayi takleef bataiye."),
     });
   }
 
@@ -469,7 +489,7 @@ export default function SehatClient({ user }) {
   const userTurns = messages.filter((message) => message.role === "user").length;
   const areaLabel = user?.location?.village
     ? `${user.location.village}, ${user.location.district}`
-    : "Apna ilaaka";
+    : t("Your area", "Apna ilaaka");
 
   return (
     <>
@@ -485,13 +505,16 @@ export default function SehatClient({ user }) {
       <div className="space-y-7">
         <ScreenHeader
           kicker={`Resident · ${areaLabel}`}
-          title="Sehat Sahayak."
-          subtitle="Apni takleef bataiye, salah lijiye aur zaroorat ki dawai nazdeeki medical par book kijiye — diagnosis kabhi nahi, sirf dawai ki salah."
+          title={t("Sehat Sahayak.", "Sehat Sahayak.")}
+          subtitle={t(
+            "Describe what is wrong, get guidance, and book the medicine you need at a nearby shop — never a diagnosis, only medicine guidance.",
+            "Apni takleef bataiye, salah lijiye aur zaroorat ki dawai nazdeeki medical par book kijiye — diagnosis kabhi nahi, sirf dawai ki salah."
+          )}
           actions={
             messages.length ? (
               <Button type="button" variant="outline" size="sm" onClick={startFresh}>
                 <RotateCcw size={13} />
-                Nayi baat
+                {t("New conversation", "Nayi baat")}
               </Button>
             ) : null
           }
@@ -517,7 +540,7 @@ export default function SehatClient({ user }) {
 
             <div ref={scrollRef} className="flex-1 space-y-3.5 overflow-y-auto px-5 py-5">
               {!isLoaded ? (
-                <p className="text-center text-sm text-muted-2">Load ho raha hai…</p>
+                <p className="text-center text-sm text-muted-2">{t("Loading…", "Load ho raha hai…")}</p>
               ) : null}
 
               {isLoaded && !messages.length ? (
@@ -528,27 +551,32 @@ export default function SehatClient({ user }) {
                     <Stethoscope size={22} />
                   </span>
                   <p className="mt-4 text-base font-semibold text-ink">
-                    Namaste {user?.name || ""}
+                    {t(`Hello ${user?.name || ""}`, `Namaste ${user?.name || ""}`)}
                   </p>
                   <p className="mt-2 max-w-sm text-[12.5px] leading-[1.65] text-muted-2">
-                    Jaise kisi se baat karte hain waise hi bataiye ki kya takleef hai. Jaldi
-                    nahi hai — samajh kar hi dawai bataunga.
+                    {t(
+                      "Tell me what is wrong the way you would tell anyone. There is no hurry — I will only suggest medicine once I understand.",
+                      "Jaise kisi se baat karte hain waise hi bataiye ki kya takleef hai. Jaldi nahi hai — samajh kar hi dawai bataunga."
+                    )}
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {STARTERS.map((starter) => (
                       <button
-                        key={starter}
+                        key={starter.en}
                         type="button"
-                        onClick={() => send(starter)}
+                        onClick={() => send(t(starter.en, starter.hi))}
                         className="rounded-full border border-line bg-card px-4 py-2 text-xs text-ink-2 transition-colors hover:border-brand hover:text-brand"
                       >
-                        {starter}
+                        {t(starter.en, starter.hi)}
                       </button>
                     ))}
                   </div>
                   <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-faint">
                     <Paperclip size={12} />
-                    Doctor ki parchi hai? Neeche clip se photo bhej dijiye.
+                    {t(
+                      "Have a doctor's prescription? Send a photo using the clip below.",
+                      "Doctor ki parchi hai? Neeche clip se photo bhej dijiye."
+                    )}
                   </p>
                 </div>
               ) : null}
@@ -605,7 +633,7 @@ export default function SehatClient({ user }) {
                 <p className="flex items-start gap-2 rounded-[14px] border border-line bg-brand-tint-2 px-3.5 py-2.5 text-xs leading-relaxed text-ink-2">
                   <Info size={13} className="mt-0.5 shrink-0 text-brand" />
                   <span>
-                    <span className="font-semibold">Kya lagta hai: </span>
+                    <span className="font-semibold">{t("Likely: ", "Kya lagta hai: ")}</span>
                     {latest.conditionGuess}
                   </span>
                 </p>
@@ -615,8 +643,8 @@ export default function SehatClient({ user }) {
                 <div className="space-y-2.5">
                   <p className="js-mono text-[9px] tracking-[0.16em] text-muted-2">
                     {latest.intent === "DOCTOR_PRESCRIBED"
-                      ? "Doctor ki likhi dawai"
-                      : "Aapke liye dawai"}
+                      ? t("Doctor-prescribed medicine", "Doctor ki likhi dawai")
+                      : t("Medicine for you", "Aapke liye dawai")}
                   </p>
                   {latest.suggestions.map((suggestion) => (
                     <SuggestionCard
@@ -633,12 +661,13 @@ export default function SehatClient({ user }) {
                 <div className="rounded-[16px] border border-warn-line bg-warn-bg p-4">
                   <p className="flex items-center gap-2 text-sm font-semibold text-warn-ink">
                     <Paperclip size={15} />
-                    Parchi chahiye
+                    {t("Prescription needed", "Parchi chahiye")}
                   </p>
                   <p className="mt-1.5 text-xs leading-relaxed text-warn-ink">
-                    Antibiotic, malaria ya TB jaisi dawai galat li jaye to nuksan karti hai.
-                    Neeche clip dabakar doctor ki parchi ki photo bhej dijiye — verify hote hi
-                    wo dawai book ho jayegi.
+                    {t(
+                      "Medicine like antibiotics, malaria or TB drugs does harm if taken wrongly. Press the clip below and send a photo of the doctor's prescription — the medicine unlocks for booking as soon as it verifies.",
+                      "Antibiotic, malaria ya TB jaisi dawai galat li jaye to nuksan karti hai. Neeche clip dabakar doctor ki parchi ki photo bhej dijiye — verify hote hi wo dawai book ho jayegi."
+                    )}
                   </p>
                 </div>
               ) : null}
@@ -646,7 +675,7 @@ export default function SehatClient({ user }) {
               {latest?.careAdvice?.length ? (
                 <div className="rounded-[16px] border border-brand-line bg-brand-tint p-4">
                   <p className="js-mono text-[9px] tracking-[0.16em] text-brand-strong">
-                    Dawai ke alawa ye kijiye
+                    {t("Besides medicine, do this", "Dawai ke alawa ye kijiye")}
                   </p>
                   <ol className="mt-2 space-y-1.5">
                     {latest.careAdvice.map((advice, index) => (
@@ -671,14 +700,14 @@ export default function SehatClient({ user }) {
               <input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="Yahan likhiye…"
+                placeholder={t("Type here…", "Yahan likhiye…")}
                 className="h-11 flex-1 rounded-[12px] border border-line bg-card px-4 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-brand"
               />
               <Button
                 type="submit"
                 size="icon"
                 disabled={isSending || !input.trim()}
-                aria-label="Bhejiye"
+                aria-label={t("Send", "Bhejiye")}
                 className="h-11 w-11"
               >
                 <Send size={15} />
@@ -693,8 +722,11 @@ export default function SehatClient({ user }) {
           */}
           <aside className="space-y-4">
             <Panel
-              title="Aapke orders"
-              description="Stock tabhi ghatega jab aap medical se dawai lenge."
+              title={t("Your orders", "Aapke orders")}
+              description={t(
+                "Stock only drops when you collect the medicine from the shop.",
+                "Stock tabhi ghatega jab aap medical se dawai lenge."
+              )}
               actions={
                 pendingOrders.length ? (
                   <Chip tone="warn">{pendingOrders.length} pending</Chip>
@@ -705,14 +737,14 @@ export default function SehatClient({ user }) {
                 {pendingOrders.length ? (
                   pendingOrders.map((order) => <OrderCard key={order.id} order={order} />)
                 ) : (
-                  <p className="text-xs text-muted-2">Abhi koi pending order nahi.</p>
+                  <p className="text-xs text-muted-2">{t("No pending orders yet.", "Abhi koi pending order nahi.")}</p>
                 )}
               </div>
 
               {pastOrders.length ? (
                 <details className="mt-4">
                   <summary className="js-mono cursor-pointer text-[9px] tracking-[0.14em] text-muted-2 hover:text-brand">
-                    Purane orders ({pastOrders.length})
+                    {t(`Past orders (${pastOrders.length})`, `Purane orders (${pastOrders.length})`)}
                   </summary>
                   <div className="mt-2.5 space-y-2.5">
                     {pastOrders.slice(0, 6).map((order) => (
@@ -724,8 +756,11 @@ export default function SehatClient({ user }) {
             </Panel>
 
             <Panel
-              title="Is baat ki guide"
-              description="Abhi wali takleef ke liye: kya khayein, kya bachav karein, kab doctor ke paas jayein."
+              title={t("A guide for this conversation", "Is baat ki guide")}
+              description={t(
+                "For the problem at hand: what to eat, what to avoid, and when to see a doctor.",
+                "Abhi wali takleef ke liye: kya khayein, kya bachav karein, kab doctor ke paas jayein."
+              )}
             >
               <Button
                 type="button"
@@ -737,36 +772,43 @@ export default function SehatClient({ user }) {
                 {isBuildingGuide ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Ban rahi hai…
+                    {t("Creating…", "Ban rahi hai…")}
                   </>
                 ) : (
                   <>
                     <FileText size={14} />
-                    Guide banaiye
+                    {t("Create the guide", "Guide banaiye")}
                   </>
                 )}
               </Button>
               {userTurns < 2 ? (
                 <p className="mt-2.5 text-xs text-muted-2">
-                  Pehle apni takleef ke baare me thodi baat kar lijiye.
+                  {t(
+                    "Talk a little about the problem first.",
+                    "Pehle apni takleef ke baare me thodi baat kar lijiye."
+                  )}
                 </p>
               ) : (
                 <Link
                   href="/sehat/profile"
                   className="mt-3 block text-center text-xs font-semibold text-brand hover:underline"
                 >
-                  Saari purani bimariyon ka record dekhiye
+                  {t("See the record of every past illness", "Saari purani bimariyon ka record dekhiye")}
                 </Link>
               )}
             </Panel>
 
             <p className="px-1 text-[11px] leading-[1.75] text-muted-2">
-              Ek hi dawai baar-baar order nahi ho sakti — pichhla order uthane ke baad hi naya
-              banega, taaki ilaake ka data sahi rahe.
+              {t(
+                "The same medicine cannot be ordered again and again — a new order opens only after the last one is collected, so the area's data stays honest.",
+                "Ek hi dawai baar-baar order nahi ho sakti — pichhla order uthane ke baad hi naya banega, taaki ilaake ka data sahi rahe."
+              )}
               <br />
               <br />
-              Ye doctor ki jagah nahi hai. Takleef badhe ya 3 din se zyada rahe to PHC jaiye.
-              Emergency me 108.
+              {t(
+                "This is not a substitute for a doctor. If it worsens or lasts more than 3 days, go to a PHC. In an emergency, call 108.",
+                "Ye doctor ki jagah nahi hai. Takleef badhe ya 3 din se zyada rahe to PHC jaiye. Emergency me 108."
+              )}
             </p>
           </aside>
         </div>

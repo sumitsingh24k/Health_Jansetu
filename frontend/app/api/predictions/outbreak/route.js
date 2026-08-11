@@ -6,6 +6,7 @@ import MedicineOrder from "@/app/lib/schema/medicineOrderSchema";
 import StockMovement from "@/app/lib/schema/stockMovementSchema";
 import Medicine from "@/app/lib/schema/medicineSchema";
 import { logServerError } from "@/app/lib/server-log";
+import { localeFromRequest } from "@/app/lib/i18n/server";
 import {
   diseaseRiskFromVelocity,
   explainDiseaseRisk,
@@ -82,6 +83,9 @@ function aggregateMedicineSales(reports) {
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
+  // Every sentence this route writes is shown to a person, so it answers in the
+  // language they picked rather than in the one the engine happens to be written in.
+  const locale = localeFromRequest(request);
 
   if (!session || !ALLOWED_ROLES.includes(role)) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -216,13 +220,13 @@ export async function POST(request) {
         purpose: entry?.description || "",
         category: entry?.category || "",
         schedule: entry?.schedule || "",
-        explanation: explainMedicine(row, entry),
+        explanation: explainMedicine(row, entry, locale),
       };
     });
 
     const velocityRisk = diseaseRiskFromVelocity(velocity, ashaCasesByDisease).map((risk) => ({
       ...risk,
-      explanation: explainDiseaseRisk(risk),
+      explanation: explainDiseaseRisk(risk, locale),
     }));
 
     const prediction = buildOutbreakPrediction({
@@ -275,7 +279,7 @@ export async function POST(request) {
           medicines,
           disease_risk: velocityRisk,
           // The map's answer to "ye area laal kyun hai?" — named medicines, not a score.
-          zone_reason: explainZoneReason(village || district, velocityRisk),
+          zone_reason: explainZoneReason(village || district, velocityRisk, locale),
           has_history: medicines.some((row) => row.baselineUnits > 0),
         },
       },

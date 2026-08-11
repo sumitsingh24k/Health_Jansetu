@@ -28,6 +28,7 @@
  */
 
 import { correlateSignals } from "@/app/lib/correlation/medicine-signal";
+import { translatorFor } from "@/app/lib/i18n/locale";
 
 /* ------------------------------------------------------------------ *
  * Deterministic randomness
@@ -67,25 +68,37 @@ export const SCENARIO_TYPES = {
   OUTBREAK: {
     label: "OUTBREAK",
     outbreakPresent: true,
-    description: "Asli outbreak, ASHA ne bhi dekha aur dawai bhi chali",
+    description: {
+      en: "A real outbreak, seen by the ASHA and matched by medicine moving",
+      hi: "Asli outbreak, ASHA ne bhi dekha aur dawai bhi chali",
+    },
     expectedStatus: "CONFIRMED",
   },
   UNDER_REPORTED: {
     label: "UNDER_REPORTED",
     outbreakPresent: true,
-    description: "Asli outbreak par ASHA survey me nahi aaya — sirf dawai chal rahi hai",
+    description: {
+      en: "A real outbreak the ASHA survey missed — only the medicine is moving",
+      hi: "Asli outbreak par ASHA survey me nahi aaya — sirf dawai chal rahi hai",
+    },
     expectedStatus: "MEDICINE_ONLY",
   },
   OVER_REPORTED: {
     label: "OVER_REPORTED",
     outbreakPresent: false,
-    description: "ASHA ne case likhe par koi dawai nahi chali — count zyada lag raha hai",
+    description: {
+      en: "The ASHA logged cases but no medicine moved — the count looks overstated",
+      hi: "ASHA ne case likhe par koi dawai nahi chali — count zyada lag raha hai",
+    },
     expectedStatus: "ASHA_ONLY",
   },
   NOISE: {
     label: "NOISE",
     outbreakPresent: false,
-    description: "Kuch nahi — thodi si aam bukhar ki dawai, koi report nahi",
+    description: {
+      en: "Nothing — a little ordinary fever medicine, and no report",
+      hi: "Kuch nahi — thodi si aam bukhar ki dawai, koi report nahi",
+    },
     expectedStatus: null,
   },
 };
@@ -220,7 +233,8 @@ function metricsFrom(matrix) {
 const SEED_SWEEP = [1, 7, 99, 2024];
 
 /** The scenario loop itself, so the seed sweep can reuse it without recursing. */
-function runScenarios({ perType, seed }) {
+function runScenarios({ perType, seed, locale }) {
+  const t = translatorFor(locale);
   const random = createRandom(seed);
   const overall = emptyMatrix();
   const byDifficulty = { CLEAR: emptyMatrix(), BORDERLINE: emptyMatrix() };
@@ -247,7 +261,7 @@ function runScenarios({ perType, seed }) {
     const meta = SCENARIO_TYPES[type];
     byScenario[type] = {
       label: meta.label,
-      description: meta.description,
+      description: t(meta.description.en, meta.description.hi),
       expectedStatus: meta.expectedStatus,
       total: 0,
       correct: 0,
@@ -302,8 +316,9 @@ function runScenarios({ perType, seed }) {
  * @param {number} options.perType  scenarios generated per type per difficulty
  * @param {number} options.seed     fixed so the report is reproducible
  */
-export function syntheticValidation({ perType = 60, seed = 42 } = {}) {
-  const { overall, byDifficulty, byScenario, misses } = runScenarios({ perType, seed });
+export function syntheticValidation({ perType = 60, seed = 42, locale } = {}) {
+  const t = translatorFor(locale);
+  const { overall, byDifficulty, byScenario, misses } = runScenarios({ perType, seed, locale });
 
   return {
     kind: "SYNTHETIC_ACCURACY",
@@ -321,9 +336,15 @@ export function syntheticValidation({ perType = 60, seed = 42 } = {}) {
     byScenario,
     sampleMisses: misses,
     caveat:
-      "Ye accuracy banaye gaye (synthetic) scenarios par hai, jinka sach pehle se pata hai. Isse pata chalta hai ki engine ke rules apne design ke mutabik chal rahe hain — ye nahi ki asli zameen par kitne sahi hain. BORDERLINE waala number zyada matlab rakhta hai: wahi asli gaon jaisa haal hai.",
+      t(
+        "This accuracy is measured on constructed (synthetic) scenarios whose truth is known in advance. It shows the engine's rules behaving as designed — not how right they are on real ground. The BORDERLINE number matters more: that is what a real village looks like.",
+        "Ye accuracy banaye gaye (synthetic) scenarios par hai, jinka sach pehle se pata hai. Isse pata chalta hai ki engine ke rules apne design ke mutabik chal rahe hain — ye nahi ki asli zameen par kitne sahi hain. BORDERLINE waala number zyada matlab rakhta hai: wahi asli gaon jaisa haal hai."
+      ),
     honesty:
-      "Engine ke threshold inhi scenarios ko dekh kar tune kiye gaye the, isliye ye score andar ki consistency naapta hai, generalisation nahi. Alag seed par number thoda girta hai — wahi zyada bharosemand hai. Asli accuracy sirf backtest degi, jab kaafi din ka data jama ho jaye.",
+      t(
+        "The engine's thresholds were tuned while looking at these very scenarios, so this score measures internal consistency, not generalisation. A different seed drops it slightly — that number is the more trustworthy one. Only a backtest gives real accuracy, once enough days of data exist.",
+        "Engine ke threshold inhi scenarios ko dekh kar tune kiye gaye the, isliye ye score andar ki consistency naapta hai, generalisation nahi. Alag seed par number thoda girta hai — wahi zyada bharosemand hai. Asli accuracy sirf backtest degi, jab kaafi din ka data jama ho jaye."
+      ),
     seedSweep: SEED_SWEEP.map((sweepSeed) => {
       const swept = runScenarios({ perType: Math.min(perType, 30), seed: sweepSeed });
       return { seed: sweepSeed, metrics: metricsFrom(swept.overall) };
@@ -341,7 +362,8 @@ export function syntheticValidation({ perType = 60, seed = 42 } = {}) {
  * Every field here is named "agreement", never "accuracy". `medicineOnly` is not an
  * error — it is the output this whole system was built to produce.
  */
-export function agreementMatrix(rows) {
+export function agreementMatrix(rows, locale) {
+  const t = translatorFor(locale);
   const cells = { bothAgree: 0, ashaOnly: 0, medicineOnly: 0 };
 
   for (const row of rows) {
@@ -381,7 +403,10 @@ export function agreementMatrix(rows) {
     kappa,
     magnitude,
     caveat:
-      "Ye agreement hai, accuracy nahi. Yahan koi source 'sach' nahi hai — MEDICINE_ONLY galti nahi, wahi to system ka asli output hai (under-reporting pakadna).",
+      t(
+        "This is agreement, not accuracy. Neither source is 'the truth' here — MEDICINE_ONLY is not an error, it is the very output this system exists to produce (catching under-reporting).",
+        "Ye agreement hai, accuracy nahi. Yahan koi source 'sach' nahi hai — MEDICINE_ONLY galti nahi, wahi to system ka asli output hai (under-reporting pakadna)."
+      ),
   };
 }
 
@@ -403,7 +428,8 @@ export const BACKTEST_REQUIREMENTS = {
  * from a handful of rows. A made-up accuracy figure on a health dashboard is worse than
  * no figure, because somebody will act on it.
  */
-export function backtest({ reports = [], medicineEvents = [], horizonDays = 2 } = {}) {
+export function backtest({ reports = [], medicineEvents = [], horizonDays = 2, locale } = {}) {
+  const t = translatorFor(locale);
   const days = new Set();
   for (const report of reports) {
     days.add(new Date(report.reportDate || report.createdAt).toISOString().slice(0, 10));
@@ -428,7 +454,10 @@ export function backtest({ reports = [], medicineEvents = [], horizonDays = 2 } 
       need: BACKTEST_REQUIREMENTS,
       shortfall,
       message:
-        "Backtest ke liye abhi itna data nahi hai. Jab tak itihaas nahi banta, koi bhi accuracy number banawati hoga — isliye yahan number nahi dikhaya ja raha.",
+        t(
+          "There is not enough data for a backtest yet. Until history accumulates, any accuracy number would be invented — so none is shown here.",
+          "Backtest ke liye abhi itna data nahi hai. Jab tak itihaas nahi banta, koi bhi accuracy number banawati hoga — isliye yahan number nahi dikhaya ja raha."
+        ),
     };
   }
 

@@ -160,7 +160,7 @@ export default function PublicDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const trendData = useMemo(
     () =>

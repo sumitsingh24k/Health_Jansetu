@@ -7,10 +7,11 @@ import HealthProfile from "@/app/lib/schema/healthProfileSchema";
 import MedicineOrder from "@/app/lib/schema/medicineOrderSchema";
 import { logServerError } from "@/app/lib/server-log";
 import { generateJson } from "@/app/lib/ai/gemini";
+import { localeFromRequest } from "@/app/lib/i18n/server";
 import { PROFILE_EPISODE_LIMIT } from "@/app/lib/chat/episodes";
 import {
   PROFILE_SCHEMA,
-  PROFILE_SYSTEM_PROMPT,
+  profileSystemPrompt,
   buildProfilePrompt,
 } from "@/app/lib/ai/health-profile";
 
@@ -113,7 +114,7 @@ function isStale(profile, { totalEpisodes, latestActivity, medicineCount }) {
   return latestActivity > storedLatest;
 }
 
-async function buildProfile(session, history) {
+async function buildProfile(session, history, locale) {
   const areaRisk = await areaRiskFor(session.user.location);
 
   const generated = await generateJson(
@@ -124,7 +125,7 @@ async function buildProfile(session, history) {
       areaRisk,
     }),
     PROFILE_SCHEMA,
-    { systemInstruction: PROFILE_SYSTEM_PROMPT, temperature: 0.4 }
+    { systemInstruction: profileSystemPrompt(locale), temperature: 0.4 }
   );
 
   if (!generated) return null;
@@ -220,7 +221,7 @@ export async function GET(request) {
     let rebuilt = false;
 
     if (forceRefresh || stale) {
-      const fresh = await buildProfile(session, history);
+      const fresh = await buildProfile(session, history, localeFromRequest(request));
       if (fresh) {
         profile = fresh;
         rebuilt = true;

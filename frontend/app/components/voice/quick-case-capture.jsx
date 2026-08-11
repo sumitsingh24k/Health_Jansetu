@@ -21,11 +21,13 @@ import { parseCoordinate } from "@/app/lib/location-utils";
 import { useWorkspace } from "@/app/workspace/workspace-context";
 import { normalizeText } from "@/app/workspace/workspace-shared";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/app/components/i18n/locale-provider";
 
+// Spoken aloud by the worker, so each example is offered in the language on screen.
 const EXAMPLES = [
-  "aaj yaha pe 4 dengue case mile, 2 serious hain",
-  "आज यहाँ चार डेंगू के मरीज़ मिले",
-  "kal 12 ghar dekhe, 3 typhoid ke patient",
+  { en: "4 dengue cases here today, 2 serious", hi: "aaj yaha pe 4 dengue case mile, 2 serious hain" },
+  { en: "आज यहाँ चार डेंगू के मरीज़ मिले", hi: "आज यहाँ चार डेंगू के मरीज़ मिले" },
+  { en: "visited 12 houses yesterday, 3 typhoid patients", hi: "kal 12 ghar dekhe, 3 typhoid ke patient" },
 ];
 
 function Chip({ label, value, tone = "slate", hint }) {
@@ -54,6 +56,7 @@ function Chip({ label, value, tone = "slate", hint }) {
  * that disease + area, and the report can be filed with a single tap.
  */
 export default function QuickCaseCapture() {
+  const t = useT();
   const {
     user,
     reports,
@@ -81,8 +84,8 @@ export default function QuickCaseCapture() {
 
     const issues = [];
     if (transcript.trim()) {
-      if (!disease) issues.push("Bimari pehchani nahi gayi - neeche se chuniye.");
-      if (!Number.isFinite(newCases) || newCases < 1) issues.push("Kitne case mile? Number bataiye.");
+      if (!disease) issues.push(t("Illness not recognised — pick one below.", "Bimari pehchani nahi gayi - neeche se chuniye."));
+      if (!Number.isFinite(newCases) || newCases < 1) issues.push(t("How many cases? Give a number.", "Kitne case mile? Number bataiye."));
       if (
         Number.isFinite(parsed.criticalCases) &&
         Number.isFinite(newCases) &&
@@ -99,7 +102,7 @@ export default function QuickCaseCapture() {
       issues,
       isActionable: Boolean(disease) && Number.isFinite(newCases) && newCases > 0 && !issues.length,
     };
-  }, [transcript, diseaseOverride, casesOverride]);
+  }, [transcript, diseaseOverride, casesOverride, t]);
 
   const hasGps = Boolean(normalizeText(reportForm.latitude) && normalizeText(reportForm.longitude));
 
@@ -199,8 +202,10 @@ export default function QuickCaseCapture() {
           </p>
           <p className="js-display mt-2.5 text-xl text-white">Speak it. The form fills itself.</p>
           <p className="mt-2 max-w-lg text-[12.5px] leading-[1.65] text-[rgba(233,242,236,0.6)]">
-            Ek line boliye - bimari, kitne case aur jagah apne aap bhar jayegi. Submit se pehle
-            aap sab kuch check kar sakte hain.
+            {t(
+              "Say one line — the illness, how many cases and the place fill themselves in. You can check everything before submitting.",
+              "Ek line boliye - bimari, kitne case aur jagah apne aap bhar jayegi. Submit se pehle aap sab kuch check kar sakte hain."
+            )}
           </p>
         </div>
       </div>
@@ -216,11 +221,11 @@ export default function QuickCaseCapture() {
       </div>
 
       <MultilingualVoiceInput
-        title="Field report voice"
-        description="Hindi, English ya apni bhasha me boliye"
+        title={t("Field report voice", "Field report voice")}
+        description={t("Speak in Hindi, English or your own language", "Hindi, English ya apni bhasha me boliye")}
         defaultLanguage="hi-IN"
-        startLabel="Bolna shuru kare"
-        stopLabel="Ruk jaiye"
+        startLabel={t("Start speaking", "Bolna shuru kare")}
+        stopLabel={t("Stop", "Ruk jaiye")}
         onListeningChange={handleListeningChange}
         onTranscript={handleVoiceTranscript}
         className="bg-white"
@@ -237,12 +242,12 @@ export default function QuickCaseCapture() {
         <div className="mt-2 flex flex-wrap gap-2">
           {EXAMPLES.map((example) => (
             <button
-              key={example}
+              key={example.en}
               type="button"
-              onClick={() => setTranscript(example)}
+              onClick={() => setTranscript(t(example.en, example.hi))}
               className="rounded-full border border-line bg-card px-3.5 py-1.5 text-xs text-muted transition-colors hover:border-brand hover:text-brand"
             >
-              {example}
+              {t(example.en, example.hi)}
             </button>
           ))}
         </div>
@@ -252,13 +257,19 @@ export default function QuickCaseCapture() {
         <>
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <Chip
-              label="Bimari / Disease"
-              value={draft.disease ? diseaseLabel(draft.disease) : "Pata nahi"}
+              label={t("Illness", "Bimari / Disease")}
+              value={draft.disease ? diseaseLabel(draft.disease) : t("Not known", "Pata nahi")}
               tone={draft.disease ? "emerald" : "amber"}
-              hint={diseaseOverride ? "Aapne chuna" : draft.disease ? "Awaaz se mila" : "Neeche se chuniye"}
+              hint={
+                diseaseOverride
+                  ? t("You picked this", "Aapne chuna")
+                  : draft.disease
+                    ? t("Heard from your voice", "Awaaz se mila")
+                    : t("Pick one below", "Neeche se chuniye")
+              }
             />
             <Chip
-              label="Naye case"
+              label={t("New cases", "Naye case")}
               value={Number.isFinite(draft.newCases) ? draft.newCases : "-"}
               tone={Number.isFinite(draft.newCases) ? "emerald" : "amber"}
             />
@@ -282,9 +293,19 @@ export default function QuickCaseCapture() {
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
               {draft.locationIntent?.kind === "here"
-                ? "Aapne kaha \"yahi jagah\" - report aapke assigned area par lagegi."
-                : "Report aapke assigned area par darj hogi."}{" "}
-              {draft.when === "yesterday" ? "Date: kal." : draft.when === "today" ? "Date: aaj." : ""}
+                ? t(
+                    'You said "right here" — the report will be filed against your assigned area.',
+                    'Aapne kaha "yahi jagah" - report aapke assigned area par lagegi.'
+                  )
+                : t(
+                    "The report will be filed against your assigned area.",
+                    "Report aapke assigned area par darj hogi."
+                  )}{" "}
+              {draft.when === "yesterday"
+                ? t("Date: yesterday.", "Date: kal.")
+                : draft.when === "today"
+                  ? t("Date: today.", "Date: aaj.")
+                  : ""}
             </p>
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -342,7 +363,9 @@ export default function QuickCaseCapture() {
 
           <div className="mt-3">
             <p className="js-mono text-[9px] tracking-[0.14em] text-muted-2">
-              {draft.disease ? "Galat bimari? Badliye:" : "Bimari chuniye:"}
+              {draft.disease
+                ? t("Wrong illness? Change it:", "Galat bimari? Badliye:")
+                : t("Pick the illness:", "Bimari chuniye:")}
             </p>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {QUICK_DISEASE_CODES.map((code) => (
@@ -402,10 +425,13 @@ export default function QuickCaseCapture() {
             >
               <Send size={15} />
               {isSubmittingReport
-                ? "Bhej rahe hain..."
+                ? t("Sending…", "Bhej rahe hain...")
                 : draft.isActionable
-                  ? `${draft.newCases} ${diseaseLabel(draft.disease)} case submit karein`
-                  : "Report submit karein"}
+                  ? t(
+                      `Submit ${draft.newCases} ${diseaseLabel(draft.disease)} cases`,
+                      `${draft.newCases} ${diseaseLabel(draft.disease)} case submit karein`
+                    )
+                  : t("Submit report", "Report submit karein")}
             </Button>
             <Button type="button" variant="outline" onClick={handleApply} disabled={draft.isEmpty}>
               Neeche form me bhar do

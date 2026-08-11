@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Languages, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 const LANGUAGES = [
   { code: "hi-IN", label: "Hindi" },
@@ -44,6 +45,7 @@ export default function MultilingualVoiceInput({
   stopLabel = "Stop Voice",
   className = "",
 }) {
+  const t = useT();
   const recognitionRef = useRef(null);
   const [language, setLanguage] = useState(defaultLanguage);
   const [isListening, setIsListening] = useState(false);
@@ -171,7 +173,7 @@ export default function MultilingualVoiceInput({
         </Button>
 
         {isListening ? (
-          <span className="js-mono text-[9px] tracking-[0.14em] text-brand">Sun raha hoon… boliye</span>
+          <span className="js-mono text-[9px] tracking-[0.14em] text-brand">{t("Listening… speak now", "Sun raha hoon… boliye")}</span>
         ) : null}
 
         {!isSupported ? (

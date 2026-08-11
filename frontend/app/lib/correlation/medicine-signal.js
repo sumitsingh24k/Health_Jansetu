@@ -24,6 +24,7 @@
  * A medicine only contributes as strongly as its `weight` says. Paracetamol moving does
  * not mean dengue; the papaya-leaf extract or an ACT kit moving very nearly does.
  */
+import { translatorFor } from "@/app/lib/i18n/locale";
 
 /** Units of a medicine that count as roughly one patient's course. */
 const UNITS_PER_PATIENT = 10;
@@ -276,47 +277,94 @@ function confidenceFor({ sourceCount, ashaCases, medicineTotal, agreement }) {
 }
 
 /** Plain-language account of how this row was decided, built from the same numbers. */
-function reasoningFor({ status, disease, ashaCases, orderDemand, counterDemand, agreement, confidence }) {
+function reasoningFor({
+  status,
+  disease,
+  ashaCases,
+  orderDemand,
+  counterDemand,
+  agreement,
+  confidence,
+  locale,
+}) {
+  const t = translatorFor(locale);
   const lines = [];
   const medicineTotal = orderDemand + counterDemand;
 
   const evidence = [];
-  if (ashaCases > 0) evidence.push(`ASHA ne ${ashaCases} case report kiye`);
-  if (orderDemand > 0) evidence.push(`JanSetu pickup se ${orderDemand.toFixed(2)} patient-equivalent dawai gayi`);
-  if (counterDemand > 0)
-    evidence.push(`counter par ${counterDemand.toFixed(2)} patient-equivalent dawai bini`);
-  lines.push(`Evidence: ${evidence.join(", ")}.`);
+  if (ashaCases > 0) {
+    evidence.push(t(`ASHA reported ${ashaCases} cases`, `ASHA ne ${ashaCases} case report kiye`));
+  }
+  if (orderDemand > 0) {
+    evidence.push(
+      t(
+        `${orderDemand.toFixed(2)} patient-equivalents left through JanSetu pickups`,
+        `JanSetu pickup se ${orderDemand.toFixed(2)} patient-equivalent dawai gayi`
+      )
+    );
+  }
+  if (counterDemand > 0) {
+    evidence.push(
+      t(
+        `${counterDemand.toFixed(2)} patient-equivalents sold over the counter`,
+        `counter par ${counterDemand.toFixed(2)} patient-equivalent dawai bini`
+      )
+    );
+  }
+  lines.push(`${t("Evidence", "Evidence")}: ${evidence.join(", ")}.`);
 
   if (status === "CONFIRMED") {
     lines.push(
-      "Do alag-alag source ek hi bimari par ishara kar rahe hain — field report aur asli dawai ki bikri. Ye sabse mazboot sabooot hai."
+      t(
+        "Two independent sources point at the same illness — the field report and actual medicine sales. This is the strongest evidence available.",
+        "Do alag-alag source ek hi bimari par ishara kar rahe hain — field report aur asli dawai ki bikri. Ye sabse mazboot sabooot hai."
+      )
     );
   } else if (status === "MEDICINE_ONLY") {
     lines.push(
-      `Dawai chal rahi hai par is area se ${disease} ki koi ASHA report nahi aayi. Iska matlab aksar under-reporting hota hai — log bimaar hain par survey me nahi aa rahe.`
+      t(
+        `Medicine is moving but no ASHA report for ${disease} has come from this area. That usually means under-reporting — people are ill but are not turning up in the survey.`,
+        `Dawai chal rahi hai par is area se ${disease} ki koi ASHA report nahi aayi. Iska matlab aksar under-reporting hota hai — log bimaar hain par survey me nahi aa rahe.`
+      )
     );
   } else {
     lines.push(
-      "ASHA ne case bataye hain par utni dawai nahi bik rahi. Ya to abhi bahut naya hai, ya log dawai kahin aur se le rahe hain, ya report me count zyada ho gaya."
+      t(
+        "The ASHA has reported cases but the matching medicine is not selling. Either this is very new, or people are buying medicine elsewhere, or the count was overstated.",
+        "ASHA ne case bataye hain par utni dawai nahi bik rahi. Ya to abhi bahut naya hai, ya log dawai kahin aur se le rahe hain, ya report me count zyada ho gaya."
+      )
     );
   }
 
   if (agreement.label === "ASHA_HEAVY") {
+    const gap = Math.round(ashaCases / Math.max(medicineTotal, 0.01));
     lines.push(
-      `Dhyan dijiye: ${ashaCases} case ke hisaab se sirf ${medicineTotal.toFixed(2)} patient-equivalent dawai movement hai — lagbhag ${Math.round(ashaCases / Math.max(medicineTotal, 0.01))}x ka farq. Dono aankde ek doosre se mel nahi kha rahe, isliye confidence ghata di gayi.`
+      t(
+        `Note: against ${ashaCases} cases there is only ${medicineTotal.toFixed(2)} patient-equivalents of medicine movement — roughly a ${gap}x gap. The two figures do not agree, so confidence was reduced.`,
+        `Dhyan dijiye: ${ashaCases} case ke hisaab se sirf ${medicineTotal.toFixed(2)} patient-equivalent dawai movement hai — lagbhag ${gap}x ka farq. Dono aankde ek doosre se mel nahi kha rahe, isliye confidence ghata di gayi.`
+      )
     );
   } else if (agreement.label === "MEDICINE_HEAVY") {
     lines.push(
-      `Dhyan dijiye: dawai ki demand (${medicineTotal.toFixed(2)}) report kiye gaye ${ashaCases} case se ${agreement.ratio.toFixed(1)}x zyada hai. Report kiye gaye case shayad poori tasveer nahi hain.`
+      t(
+        `Note: medicine demand (${medicineTotal.toFixed(2)}) is ${agreement.ratio.toFixed(1)}x higher than the ${ashaCases} reported cases. The reported cases may not be the whole picture.`,
+        `Dhyan dijiye: dawai ki demand (${medicineTotal.toFixed(2)}) report kiye gaye ${ashaCases} case se ${agreement.ratio.toFixed(1)}x zyada hai. Report kiye gaye case shayad poori tasveer nahi hain.`
+      )
     );
   } else if (agreement.label === "ALIGNED") {
     lines.push(
-      `Dono aankde paimane par bhi mel khate hain (${medicineTotal.toFixed(2)} patient-equivalent vs ${ashaCases} case), isliye confidence poori rakhi gayi.`
+      t(
+        `The two figures agree on scale as well (${medicineTotal.toFixed(2)} patient-equivalents vs ${ashaCases} cases), so confidence was kept full.`,
+        `Dono aankde paimane par bhi mel khate hain (${medicineTotal.toFixed(2)} patient-equivalent vs ${ashaCases} case), isliye confidence poori rakhi gayi.`
+      )
     );
   }
 
   lines.push(
-    `Confidence ${confidence} — source ki ginti, evidence ki maatra aur dono aankdon ke mel, teeno se banaya gaya.`
+    t(
+      `Confidence ${confidence} — built from the number of sources, the amount of evidence, and how well the two figures agree.`,
+      `Confidence ${confidence} — source ki ginti, evidence ki maatra aur dono aankdon ke mel, teeno se banaya gaya.`
+    )
   );
 
   return lines.join(" ");
@@ -334,7 +382,10 @@ export function correlateSignals(
   ashaCasesByDisease,
   orderDemand,
   counterDemand = new Map(),
-  specificity = new Map()
+  specificity = new Map(),
+  // Optional and last, so the synthetic validation harness and any other caller
+  // that does not care about wording keeps working untouched.
+  locale = "en"
 ) {
   const diseases = new Set([
     ...ashaCasesByDisease.keys(),
@@ -405,6 +456,7 @@ export function correlateSignals(
         counterDemand: fromCounter,
         agreement,
         confidence,
+        locale,
       }),
     });
   }

@@ -29,12 +29,14 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 type IconComponent = React.ComponentType<{ className?: string }>;
 
 interface NavigationItem {
   id: string;
-  name: string;
+  // Either final text, or the two wordings this app carries everywhere else.
+  name: string | { en: string; hi: string };
   icon: IconComponent;
   href: string;
   badge?: string;
@@ -83,7 +85,13 @@ function initialsFromName(name: string | null | undefined) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/** A nav name is either already-final text or an {en, hi} pair. */
+function navLabel(name: any, t: (en: string, hi?: string) => string) {
+  return typeof name === "string" ? name : t(name.en, name.hi);
+}
+
 export function Sidebar({ className = "", children, user }: SidebarProps) {
+  const t = useT();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -255,7 +263,7 @@ export function Sidebar({ className = "", children, user }: SidebarProps) {
                       ${active ? "bg-ink text-white" : "text-ink-2 hover:bg-brand-tint hover:text-brand-strong"}
                       ${isCollapsed ? "justify-center px-2" : "space-x-2.5"}
                     `}
-                    title={isCollapsed ? item.name : undefined}
+                    title={isCollapsed ? navLabel(item.name, t) : undefined}
                   >
                     <div className="flex min-w-[24px] items-center justify-center">
                       <Icon
@@ -268,7 +276,7 @@ export function Sidebar({ className = "", children, user }: SidebarProps) {
                     {!isCollapsed && (
                       <div className="flex w-full items-center justify-between">
                         <span className={`text-[13px] ${active ? "font-semibold" : "font-normal"}`}>
-                          {item.name}
+                          {navLabel(item.name, t)}
                         </span>
                         {item.badge && (
                           <span
@@ -292,7 +300,7 @@ export function Sidebar({ className = "", children, user }: SidebarProps) {
 
                     {isCollapsed && (
                       <div className="invisible absolute left-full z-50 ml-2 rounded-lg bg-ink px-2.5 py-1.5 text-xs whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                        {item.name}
+                        {navLabel(item.name, t)}
                         {item.badge && (
                           <span className="ml-1.5 rounded-full bg-white/15 px-1.5 py-0.5 text-[10px]">
                             {item.badge}

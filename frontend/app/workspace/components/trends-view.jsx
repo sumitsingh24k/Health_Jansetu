@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspace } from "@/app/workspace/workspace-context";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { DailyTrendChart } from "@/components/workspace/daily-trend-chart";
 import { MedicineVelocityPanel } from "@/app/workspace/components/medicine-velocity-panel";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ const SELECT_CLASS =
   "h-10 rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none transition-colors hover:border-brand-line focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 disabled:bg-brand-tint-2 disabled:text-faint";
 
 export function TrendsView() {
+  const t = useT();
   const {
     filters,
     setFilters,
@@ -345,8 +347,14 @@ export function TrendsView() {
       ) : needsAreaChoice && !activeDistrict ? (
         <Panel
           tone="brand"
-          title="Kaunsi dawai tez bik rahi hai — aur uska matlab kya hai"
-          description="Aap poore zile dekhte hain, isliye pehle ek district chuniye. Uske baad yahan dikhega ki kis dawai ki bikri kitni tez hui, wo dawai kis liye chalti hai, aur usse kis bimari ka kitna ishara banta hai."
+          title={t(
+            "Which medicine is moving fast — and what that means",
+            "Kaunsi dawai tez bik rahi hai — aur uska matlab kya hai"
+          )}
+          description={t(
+            "You are looking at every district, so pick one first. After that this shows how fast each medicine moved, what it treats, and how strong a signal that makes for each illness.",
+            "Aap poore zile dekhte hain, isliye pehle ek district chuniye. Uske baad yahan dikhega ki kis dawai ki bikri kitni tez hui, wo dawai kis liye chalti hai, aur usse kis bimari ka kitna ishara banta hai."
+          )}
         >
           {areaOptions.length ? (
             <div className="flex flex-wrap gap-2">

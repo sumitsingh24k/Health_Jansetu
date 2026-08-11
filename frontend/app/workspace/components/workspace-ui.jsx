@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { navItemsForRole } from "@/app/lib/auth/role-home";
 import { ScreenHeader, TabNav } from "@/app/components/screen-ui";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * The opening of every workspace screen.

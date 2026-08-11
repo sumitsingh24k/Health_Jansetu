@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Panel } from "@/app/components/screen-ui";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * Two panels, one story: which medicine is moving, and what it points at.
@@ -25,9 +26,9 @@ import { Panel } from "@/app/components/screen-ui";
 
 /** Sequential brand ramp: darker = the medicine means fewer diseases. */
 const SPECIFICITY_STYLE = {
-  SPECIFIC: { bar: "bg-[#0e5c39]", label: "khaas dawai", chip: "bg-[#0e5c39]" },
-  MODERATE: { bar: "bg-[#2ea86f]", label: "kuch bimariyon me", chip: "bg-[#2ea86f]" },
-  BROAD: { bar: "bg-[#a8dcc0]", label: "har jagah chalti hai", chip: "bg-[#a8dcc0]" },
+  SPECIFIC: { bar: "bg-[#0e5c39]", label: { en: "specific medicine", hi: "khaas dawai" }, chip: "bg-[#0e5c39]" },
+  MODERATE: { bar: "bg-[#2ea86f]", label: { en: "a few illnesses", hi: "kuch bimariyon me" }, chip: "bg-[#2ea86f]" },
+  BROAD: { bar: "bg-[#a8dcc0]", label: { en: "used everywhere", hi: "har jagah chalti hai" }, chip: "bg-[#a8dcc0]" },
 };
 
 /** Reserved status steps, validated against the light surface. */
@@ -44,6 +45,7 @@ function changeLabel(row) {
 }
 
 function MedicineRow({ row, scale, isOpen, onToggle }) {
+  const t = useT();
   const style = SPECIFICITY_STYLE[row.specificity] || SPECIFICITY_STYLE.BROAD;
   const magnitude = row.isNew ? 0 : Math.abs(row.changePercent || 0);
   const width = scale > 0 ? Math.max(2, (magnitude / scale) * 100) : 2;
@@ -97,6 +99,7 @@ function MedicineRow({ row, scale, isOpen, onToggle }) {
 }
 
 function DiseaseRow({ risk, isOpen, onToggle }) {
+  const t = useT();
   const style = BAND_STYLE[risk.band] || BAND_STYLE.LOW;
 
   return (
@@ -131,10 +134,10 @@ function DiseaseRow({ risk, isOpen, onToggle }) {
           <p className="text-xs leading-[1.7] text-muted">{risk.explanation}</p>
           <div className="flex flex-wrap gap-1.5">
             {[
-              ["kitni dawai", risk.breakdown.demand],
-              ["kitni tezi", risk.breakdown.growth],
-              ["kitni khaas", risk.breakdown.specificity],
-              ["ASHA ka saath", risk.breakdown.ashaAgreement],
+              [t("how much medicine", "kitni dawai"), risk.breakdown.demand],
+              [t("how fast", "kitni tezi"), risk.breakdown.growth],
+              [t("how specific", "kitni khaas"), risk.breakdown.specificity],
+              [t("ASHA agreement", "ASHA ka saath"), risk.breakdown.ashaAgreement],
             ].map(([label, value]) => (
               <span
                 key={label}
@@ -151,6 +154,7 @@ function DiseaseRow({ risk, isOpen, onToggle }) {
 }
 
 export function MedicineVelocityPanel({ velocity }) {
+  const t = useT();
   const [openMedicine, setOpenMedicine] = useState(null);
   const [openDisease, setOpenDisease] = useState(null);
 
@@ -166,11 +170,12 @@ export function MedicineVelocityPanel({ velocity }) {
 
   if (!medicines.length) {
     return (
-      <Panel title="Kaunsi dawai tez bik rahi hai">
+      <Panel title={t("Which medicine is moving fast", "Kaunsi dawai tez bik rahi hai")}>
         <p className="text-sm leading-[1.7] text-muted">
-          Is area me pichhle {velocity.window_days * 2} din me koi dawai ki bikri darj nahi hui.
-          Jaise hi medical shop stock update karega ya koi pickup confirm hoga, ye chart bharne
-          lagega.
+          {t(
+            `No medicine sale has been recorded in this area over the last ${velocity.window_days * 2} days. This chart fills in as soon as a shop updates stock or confirms a pickup.`,
+            `Is area me pichhle ${velocity.window_days * 2} din me koi dawai ki bikri darj nahi hui. Jaise hi medical shop stock update karega ya koi pickup confirm hoga, ye chart bharne lagega.`
+          )}
         </p>
       </Panel>
     );
@@ -178,8 +183,14 @@ export function MedicineVelocityPanel({ velocity }) {
 
   return (
     <Panel
-      title="Kaunsi dawai tez bik rahi hai — aur uska matlab kya hai"
-      description={`Pichhle ${velocity.window_days} din ki bikri, usse pehle ke ${velocity.window_days} din se tulna karke. Kisi bhi row par click kijiye — poori wajah khulegi.`}
+      title={t(
+        "Which medicine is moving fast — and what that means",
+        "Kaunsi dawai tez bik rahi hai — aur uska matlab kya hai"
+      )}
+      description={t(
+        `Sales over the last ${velocity.window_days} days, compared with the ${velocity.window_days} days before. Click any row for the full reasoning.`,
+        `Pichhle ${velocity.window_days} din ki bikri, usse pehle ke ${velocity.window_days} din se tulna karke. Kisi bhi row par click kijiye — poori wajah khulegi.`
+      )}
     >
       {!velocity.has_history ? (
         <p className="mb-4 rounded-[12px] border border-warn-line bg-warn-bg px-3.5 py-2.5 text-xs leading-relaxed text-warn-ink">
@@ -191,7 +202,7 @@ export function MedicineVelocityPanel({ velocity }) {
       <div className="grid gap-7 lg:grid-cols-2">
         <div>
           <h3 className="js-mono text-[9px] tracking-[0.14em] text-muted-2">
-            Dawai — kitni tez biki
+            {t("Medicine — how fast it moved", "Dawai — kitni tez biki")}
           </h3>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
@@ -201,7 +212,7 @@ export function MedicineVelocityPanel({ velocity }) {
                 className="js-mono inline-flex items-center gap-1.5 text-[8.5px] tracking-[0.1em] text-muted-2"
               >
                 <span className={`h-2 w-3.5 rounded-sm ${style.chip}`} />
-                {style.label}
+                {t(style.label.en, style.label.hi)}
               </span>
             ))}
             <span className="js-mono inline-flex items-center gap-1.5 text-[8.5px] tracking-[0.1em] text-muted-2">
@@ -225,10 +236,13 @@ export function MedicineVelocityPanel({ velocity }) {
 
         <div>
           <h3 className="js-mono text-[9px] tracking-[0.14em] text-muted-2">
-            Bimari — kitna ishara milta hai
+            {t("Illness — how strong the signal is", "Bimari — kitna ishara milta hai")}
           </h3>
           <p className="mt-2.5 text-[10.5px] text-muted-2">
-            Score 0–100. Ye probability nahi hai — sabooot ka jod hai.
+            {t(
+              "Score 0–100. This is not a probability — it is a sum of evidence.",
+              "Score 0–100. Ye probability nahi hai — sabooot ka jod hai."
+            )}
           </p>
 
           <ul className="mt-3 space-y-0.5">
@@ -260,7 +274,7 @@ export function MedicineVelocityPanel({ velocity }) {
           }`}
         >
           <p className="js-mono text-[9px] tracking-[0.14em] text-muted-2">
-            Map par ye area aisa kyun dikh raha hai
+            {t("Why this area looks the way it does on the map", "Map par ye area aisa kyun dikh raha hai")}
           </p>
           <p className="mt-2 text-sm leading-[1.7] text-ink-2">{velocity.zone_reason}</p>
         </div>

@@ -7,6 +7,8 @@ import MedicalStock from "@/app/lib/schema/medicalStockSchema";
 import StockMovement from "@/app/lib/schema/stockMovementSchema";
 import User from "@/app/lib/schema/userschema";
 import { logServerError } from "@/app/lib/server-log";
+import { localeFromRequest } from "@/app/lib/i18n/server";
+import { translatorFor } from "@/app/lib/i18n/locale";
 import { canSeeAllAreas, canSeeSupplyInsights } from "@/app/lib/auth/role-home";
 import {
   correlateSignals,
@@ -79,6 +81,9 @@ function riskLevelFor(cases, medicineDemand) {
 export async function GET(request) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
+  // The reasoning attached to every row is prose a person reads, so it follows the
+  // language they chose rather than the one the engine was written in.
+  const locale = localeFromRequest(request);
 
   if (!session?.user || !canSeeSupplyInsights(role)) {
     return Response.json(
@@ -251,7 +256,8 @@ export async function GET(request) {
       ashaCasesByDisease,
       orderDemand,
       counterDemand,
-      specificity
+      specificity,
+      locale
     ).map((row) => {
       const series = dailyDemandSeries(medicineEvents, row.disease, WINDOW_DAYS);
       const spike = spikeStrength(series);
@@ -259,7 +265,7 @@ export async function GET(request) {
         ...row,
         demandSeries: series,
         demandSpikePercent: spike.growthPercent,
-        explanation: explainCorrelationRow(row),
+        explanation: explainCorrelationRow(row, locale),
       };
     });
 
@@ -304,14 +310,15 @@ export async function GET(request) {
       ashaSide,
       medicalSide,
       dailyCases: ashaSide.dailyCases.map((entry) => entry.cases),
+      locale,
     });
 
-    const mapExplanation = explainMap(zones);
+    const mapExplanation = explainMap(zones, locale);
 
     const validation = {
-      synthetic: syntheticValidation({ perType: 60, seed: 42 }),
-      agreement: agreementMatrix(correlation),
-      backtest: backtest({ reports: ashaReports, medicineEvents }),
+      synthetic: syntheticValidation({ perType: 60, seed: 42, locale }),
+      agreement: agreementMatrix(correlation, locale),
+      backtest: backtest({ reports: ashaReports, medicineEvents, locale }),
     };
 
     // Narration is opt-in per request: the dashboard is fully readable without it, and
@@ -341,6 +348,14 @@ export async function GET(request) {
     });
   } catch (error) {
     logServerError("api/insights/correlation", error);
-    return Response.json({ message: "Insight load nahi hua." }, { status: 500 });
+    return Response.json(
+      {
+        message: translatorFor(locale)(
+          "Could not load the insight.",
+          "Insight load nahi hua."
+        ),
+      },
+      { status: 500 }
+    );
   }
 }

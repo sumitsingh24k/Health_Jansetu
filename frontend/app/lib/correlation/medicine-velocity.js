@@ -13,6 +13,7 @@
  * send health workers chasing flu seasons, so specificity is weighted everywhere here:
  * in the score, in the ranking, and in the sentence the admin reads.
  */
+import { translatorFor } from "@/app/lib/i18n/locale";
 
 /** Units of a medicine that count as roughly one patient's course. */
 const UNITS_PER_PATIENT = 10;
@@ -266,14 +267,30 @@ export function diseaseRiskFromVelocity(velocities, ashaCasesByDisease = new Map
  * Words
  * ------------------------------------------------------------------ */
 
-function movementPhrase(row) {
-  if (row.isNew) return `${row.recentUnits} unit biki, pichhle hafte ek bhi nahi`;
-  if (row.changePercent === null) return `${row.recentUnits} unit biki`;
-  if (row.changePercent > 0)
-    return `+${row.changePercent}% (${row.baselineUnits} se ${row.recentUnits} unit)`;
-  if (row.changePercent < 0)
-    return `${row.changePercent}% (${row.baselineUnits} se ${row.recentUnits} unit)`;
-  return `${row.recentUnits} unit, koi badlaav nahi`;
+function movementPhrase(row, locale) {
+  const t = translatorFor(locale);
+  if (row.isNew) {
+    return t(
+      `${row.recentUnits} units sold, none at all last week`,
+      `${row.recentUnits} unit biki, pichhle hafte ek bhi nahi`
+    );
+  }
+  if (row.changePercent === null) {
+    return t(`${row.recentUnits} units sold`, `${row.recentUnits} unit biki`);
+  }
+  if (row.changePercent > 0) {
+    return t(
+      `+${row.changePercent}% (${row.baselineUnits} to ${row.recentUnits} units)`,
+      `+${row.changePercent}% (${row.baselineUnits} se ${row.recentUnits} unit)`
+    );
+  }
+  if (row.changePercent < 0) {
+    return t(
+      `${row.changePercent}% (${row.baselineUnits} to ${row.recentUnits} units)`,
+      `${row.changePercent}% (${row.baselineUnits} se ${row.recentUnits} unit)`
+    );
+  }
+  return t(`${row.recentUnits} units, no change`, `${row.recentUnits} unit, koi badlaav nahi`);
 }
 
 /**
@@ -283,8 +300,9 @@ function movementPhrase(row) {
  * @param {object} row       a velocity row
  * @param {object} catalog   the catalog entry, for its description
  */
-export function explainMedicine(row, catalog) {
-  const lines = [`${row.brand}: ${movementPhrase(row)}.`];
+export function explainMedicine(row, catalog, locale) {
+  const t = translatorFor(locale);
+  const lines = [`${row.brand}: ${movementPhrase(row, locale)}.`];
 
   if (catalog?.description) lines.push(catalog.description);
 
@@ -294,19 +312,33 @@ export function explainMedicine(row, catalog) {
       null
     );
     lines.push(
-      `Ye dawai lagbhag sirf ${target?.disease || "ek hi bimari"} me chalti hai, isliye iski tezi seedha ishara hai.`
+      t(
+        `This medicine is used almost only for ${target?.disease || "a single illness"}, so a jump in it is a direct signal.`,
+        `Ye dawai lagbhag sirf ${target?.disease || "ek hi bimari"} me chalti hai, isliye iski tezi seedha ishara hai.`
+      )
     );
   } else if (row.specificity === "BROAD") {
     lines.push(
-      `Ye ${(row.diseaseSignals || []).length} bimariyon me chalti hai, isliye akele iski tezi se kuch pakka nahi hota — kisi specific dawai ka saath chahiye.`
+      t(
+        `It is used for ${(row.diseaseSignals || []).length} illnesses, so a jump in it alone settles nothing — it needs a specific medicine alongside.`,
+        `Ye ${(row.diseaseSignals || []).length} bimariyon me chalti hai, isliye akele iski tezi se kuch pakka nahi hota — kisi specific dawai ka saath chahiye.`
+      )
     );
   } else {
-    lines.push("Ye kuch hi bimariyon me chalti hai — ishara hai, par akela sabooot nahi.");
+    lines.push(
+      t(
+        "It is used for only a few illnesses — a signal, but not proof on its own.",
+        "Ye kuch hi bimariyon me chalti hai — ishara hai, par akela sabooot nahi."
+      )
+    );
   }
 
   if (!row.isReadable) {
     lines.push(
-      `Sirf ${row.recentUnits} unit — itni kam bikri par percentage bhramak hota hai, isliye ise ginti me nahi liya gaya.`
+      t(
+        `Only ${row.recentUnits} units — a percentage misleads at that volume, so this was left out of the count.`,
+        `Sirf ${row.recentUnits} unit — itni kam bikri par percentage bhramak hota hai, isliye ise ginti me nahi liya gaya.`
+      )
     );
   }
 
@@ -314,57 +346,88 @@ export function explainMedicine(row, catalog) {
 }
 
 /** Why this disease scored what it did, in the order the points were added. */
-export function explainDiseaseRisk(risk) {
+export function explainDiseaseRisk(risk, locale) {
+  const t = translatorFor(locale);
   const specific = risk.contributors.filter((row) => row.specificity === "SPECIFIC");
   const broad = risk.contributors.filter((row) => row.specificity === "BROAD");
 
   const lines = [];
 
   if (specific.length) {
+    const named = specific.map((row) => `${row.brand} (${movementPhrase(row, locale)})`).join(", ");
     lines.push(
-      `${specific.map((row) => `${row.brand} (${movementPhrase(row)})`).join(", ")} — ye ${specific.length > 1 ? "dawaiyan" : "dawai"} khaas ${risk.disease} ke liye hai.`
+      t(
+        `${named} — ${specific.length > 1 ? "these medicines are" : "this medicine is"} specific to ${risk.disease}.`,
+        `${named} — ye ${specific.length > 1 ? "dawaiyan" : "dawai"} khaas ${risk.disease} ke liye hai.`
+      )
     );
   }
   if (broad.length) {
+    const named = broad.map((row) => `${row.brand} (${movementPhrase(row, locale)})`).join(", ");
     lines.push(
-      `Saath me aam dawaiyan bhi chal rahi hain: ${broad.map((row) => `${row.brand} (${movementPhrase(row)})`).join(", ")}.`
+      t(
+        `Broad-spectrum medicine is moving too: ${named}.`,
+        `Saath me aam dawaiyan bhi chal rahi hain: ${named}.`
+      )
     );
   }
 
   if (specific.length && broad.length) {
     lines.push(
-      "Ek specific dawai aur aam dawai dono ka ek saath tez hona — asli outbreak ka yehi pattern hota hai."
+      t(
+        "A specific medicine and a broad one accelerating together — that is the pattern a real outbreak makes.",
+        "Ek specific dawai aur aam dawai dono ka ek saath tez hona — asli outbreak ka yehi pattern hota hai."
+      )
     );
   } else if (!specific.length && broad.length) {
     lines.push(
-      "Sirf aam dawaiyan tez hui hain, koi specific dawai nahi. Ye mausami bukhar bhi ho sakta hai — isliye score jaan boojh kar neeche rakha gaya."
+      t(
+        "Only broad-spectrum medicine rose, nothing specific. This could equally be a seasonal fever — so the score was deliberately held down.",
+        "Sirf aam dawaiyan tez hui hain, koi specific dawai nahi. Ye mausami bukhar bhi ho sakta hai — isliye score jaan boojh kar neeche rakha gaya."
+      )
     );
   }
 
   lines.push(
-    risk.ashaCases > 0
-      ? `ASHA ne bhi is area me ${risk.ashaCases} case report kiye hain, isliye 10 point aur jode gaye.`
-      : "ASHA ki koi report nahi aayi — agar dawai chal rahi hai to yahan survey karwana chahiye."
+    risk.ashaAgreement
+      ? t(
+          "ASHA reports back this up, so the score was raised.",
+          "ASHA ki report bhi iska saath deti hai, isliye score badhaya gaya."
+        )
+      : t(
+          "No ASHA report has come in — if medicine is moving, this area deserves a survey.",
+          "ASHA ki koi report nahi aayi — agar dawai chal rahi hai to yahan survey karwana chahiye."
+        )
   );
 
   lines.push(
-    `Score ${risk.score}/100 = ${risk.breakdown.demand} (kitni dawai) + ${risk.breakdown.growth} (kitni tezi) + ${risk.breakdown.specificity} (kitni khaas) + ${risk.breakdown.ashaAgreement} (ASHA ka saath). Ye probability nahi hai — sabooot ka jod hai.`
+    t(
+      `Score ${risk.score}/100 = ${risk.breakdown.demand} (how much medicine) + ${risk.breakdown.growth} (how fast) + ${risk.breakdown.specificity} (how specific) + ${risk.breakdown.ashaAgreement} (ASHA agreement). This is not a probability — it is a sum of evidence.`,
+      `Score ${risk.score}/100 = ${risk.breakdown.demand} (kitni dawai) + ${risk.breakdown.growth} (kitni tezi) + ${risk.breakdown.specificity} (kitni khaas) + ${risk.breakdown.ashaAgreement} (ASHA ka saath). Ye probability nahi hai — sabooot ka jod hai.`
+    )
   );
 
   return lines.join(" ");
 }
 
 /** The map's answer to "ye area laal kyun hai?", in medicine terms. */
-export function explainZoneReason(village, risks) {
+export function explainZoneReason(village, risks, locale) {
+  const t = translatorFor(locale);
   const top = risks[0];
   if (!top || top.band === "LOW") {
-    return `${village}: koi dawai itni tez nahi bik rahi ki kisi bimari ka pakka ishara mile.`;
+    return t(
+      `${village}: no medicine is moving fast enough to point clearly at any illness.`,
+      `${village}: koi dawai itni tez nahi bik rahi ki kisi bimari ka pakka ishara mile.`
+    );
   }
 
   const drivers = top.contributors
     .slice(0, 2)
-    .map((row) => `${row.brand} ${movementPhrase(row)}`)
-    .join(" aur ");
+    .map((row) => `${row.brand} ${movementPhrase(row, locale)}`)
+    .join(t(" and ", " aur "));
 
-  return `${village} par ${top.disease} ka ishara ${top.band} hai — wajah: ${drivers}.`;
+  return t(
+    `${village} shows a ${top.band} signal for ${top.disease} — because: ${drivers}.`,
+    `${village} par ${top.disease} ka ishara ${top.band} hai — wajah: ${drivers}.`
+  );
 }

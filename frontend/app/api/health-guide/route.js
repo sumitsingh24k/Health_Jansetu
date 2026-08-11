@@ -6,7 +6,8 @@ import Medicine from "@/app/lib/schema/medicineSchema";
 import MedicineOrder from "@/app/lib/schema/medicineOrderSchema";
 import { logServerError } from "@/app/lib/server-log";
 import { generateJson } from "@/app/lib/ai/gemini";
-import { HEALTH_GUIDE_SCHEMA, HEALTH_GUIDE_SYSTEM_PROMPT } from "@/app/lib/ai/health-assistant";
+import { HEALTH_GUIDE_SCHEMA, healthGuideSystemPrompt } from "@/app/lib/ai/health-assistant";
+import { localeFromRequest } from "@/app/lib/i18n/server";
 
 /**
  * Builds a personal health guide from the user's own conversation.
@@ -171,7 +172,7 @@ export async function POST(request) {
       .join("\n");
 
     const guide = await generateJson(prompt, HEALTH_GUIDE_SCHEMA, {
-      systemInstruction: HEALTH_GUIDE_SYSTEM_PROMPT,
+      systemInstruction: healthGuideSystemPrompt(localeFromRequest(request)),
       temperature: 0.4,
     });
 

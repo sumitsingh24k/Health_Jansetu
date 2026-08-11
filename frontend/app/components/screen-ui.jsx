@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LanguageToggle } from "@/app/components/i18n/language-toggle";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * The pieces every signed-in screen is built from.
@@ -41,6 +42,8 @@ export function ScreenHeader({ kicker, title, subtitle, actions }) {
  * the route guard rather than by a dead button.
  */
 export function TabNav({ items, activeHref }) {
+  const t = useT();
+
   if (!items?.length) return null;
 
   const isActive = (href) => {
@@ -63,7 +66,9 @@ export function TabNav({ items, activeHref }) {
               active ? "bg-ink text-white" : "text-ink-2 hover:bg-brand-tint hover:text-brand-strong"
             }`}
           >
-            {item.label}
+            {/* A label is either already-final text or an {en, hi} pair, so a caller can
+                hand over whichever it has without wrapping every entry. */}
+            {typeof item.label === "string" ? item.label : t(item.label.en, item.label.hi)}
           </Link>
         );
       })}

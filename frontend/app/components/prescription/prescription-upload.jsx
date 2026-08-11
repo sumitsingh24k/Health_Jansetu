@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Paperclip, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
@@ -16,6 +17,7 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
  * hands the verdict back to the chat.
  */
 export function PrescriptionAttachButton({ onResult, disabled }) {
+  const t = useT();
   const inputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -25,18 +27,18 @@ export function PrescriptionAttachButton({ onResult, disabled }) {
     if (!file) return;
 
     if (!ACCEPTED.includes(file.type)) {
-      toast.error("Sirf JPG, PNG ya WEBP photo chalegi");
+      toast.error(t("Only JPG, PNG or WEBP photos work", "Sirf JPG, PNG ya WEBP photo chalegi"));
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("Photo bahut badi hai", { description: "4 MB se chhoti photo lijiye." });
+      toast.error(t("The photo is too large", "Photo bahut badi hai"), { description: t("Use a photo under 4 MB.", "4 MB se chhoti photo lijiye.") });
       return;
     }
 
     const dataUri = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("Photo padhi nahi ja saki"));
+      reader.onerror = () => reject(new Error(t("The photo could not be read", "Photo padhi nahi ja saki")));
       reader.readAsDataURL(file);
     }).catch((error) => {
       toast.error(error.message);
@@ -59,7 +61,7 @@ export function PrescriptionAttachButton({ onResult, disabled }) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        onResult?.({ error: payload?.message || "Upload nahi hua", preview: dataUri });
+        onResult?.({ error: payload?.message || t("Upload failed", "Upload nahi hua"), preview: dataUri });
         return;
       }
 
@@ -82,8 +84,8 @@ export function PrescriptionAttachButton({ onResult, disabled }) {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={disabled || isUploading}
-        title="Doctor ki parchi ki photo bhejiye"
-        aria-label="Doctor ki parchi ki photo bhejiye"
+        title={t("Send a photo of the doctor's prescription", "Doctor ki parchi ki photo bhejiye")}
+        aria-label={t("Send a photo of the doctor's prescription", "Doctor ki parchi ki photo bhejiye")}
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line text-muted transition-colors hover:border-brand hover:bg-brand-tint hover:text-brand disabled:opacity-50"
       >
         {isUploading ? (
@@ -98,6 +100,7 @@ export function PrescriptionAttachButton({ onResult, disabled }) {
 
 /** The verdict, rendered as a card in the conversation itself. */
 export function PrescriptionResultCard({ result }) {
+  const t = useT();
   if (result.pending) {
     return (
       <div className="rounded-[16px] border border-line bg-brand-tint-2 p-3.5">
@@ -109,7 +112,7 @@ export function PrescriptionResultCard({ result }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={result.preview}
-            alt="Bheji gayi parchi"
+            alt={t("Prescription sent", "Bheji gayi parchi")}
             className="mt-2.5 max-h-40 rounded-[12px] border border-line object-contain"
           />
         ) : null}
@@ -131,10 +134,10 @@ export function PrescriptionResultCard({ result }) {
 
   const tone =
     result.status === "VERIFIED"
-      ? { box: "border-brand-line bg-brand-tint", text: "text-brand-strong", Icon: CheckCircle2, title: "Parchi verify ho gayi" }
+      ? { box: "border-brand-line bg-brand-tint", text: "text-brand-strong", Icon: CheckCircle2, title: t("Prescription verified", "Parchi verify ho gayi") }
       : result.status === "EXPIRED"
-        ? { box: "border-warn-line bg-warn-bg", text: "text-warn-ink", Icon: AlertTriangle, title: "Parchi purani ho chuki hai" }
-        : { box: "border-danger-line bg-danger-bg", text: "text-danger-ink", Icon: XCircle, title: "Parchi manzoor nahi hui" };
+        ? { box: "border-warn-line bg-warn-bg", text: "text-warn-ink", Icon: AlertTriangle, title: t("The prescription has expired", "Parchi purani ho chuki hai") }
+        : { box: "border-danger-line bg-danger-bg", text: "text-danger-ink", Icon: XCircle, title: t("The prescription was not accepted", "Parchi manzoor nahi hui") };
 
   const { Icon } = tone;
 
@@ -149,14 +152,14 @@ export function PrescriptionResultCard({ result }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={result.preview}
-          alt="Bheji gayi parchi"
+          alt={t("Prescription sent", "Bheji gayi parchi")}
           className="mt-2.5 max-h-36 rounded-[12px] border border-white/70 object-contain"
         />
       ) : null}
 
       {result.doctorName || result.prescribedOn ? (
         <p className={`mt-2 text-xs ${tone.text}`}>
-          {result.doctorName ? `Dr. ${result.doctorName}` : "Doctor ka naam nahi dikha"}
+          {result.doctorName ? `Dr. ${result.doctorName}` : t("Doctor's name not legible", "Doctor ka naam nahi dikha")}
           {result.clinicName ? ` · ${result.clinicName}` : ""}
           {result.prescribedOn
             ? ` · ${new Date(result.prescribedOn).toLocaleDateString("en-IN")}`
@@ -166,7 +169,7 @@ export function PrescriptionResultCard({ result }) {
 
       {result.unlocked?.length ? (
         <div className="mt-2">
-          <p className={`text-xs font-semibold ${tone.text}`}>Ab ye dawai book kar sakte hain:</p>
+          <p className={`text-xs font-semibold ${tone.text}`}>{t("You can now book this medicine:", "Ab ye dawai book kar sakte hain:")}</p>
           <p className={`text-xs ${tone.text}`}>
             {result.unlocked.map((item) => item.brand).join(", ")}
           </p>

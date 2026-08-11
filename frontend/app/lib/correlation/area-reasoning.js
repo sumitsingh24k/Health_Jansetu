@@ -8,24 +8,39 @@
  * sentence produced by a language model cannot be audited three weeks later.
  */
 
+import { translatorFor } from "@/app/lib/i18n/locale";
+
 const STATUS_HEADLINE = {
-  CONFIRMED: "Dono taraf se pakka",
-  MEDICINE_ONLY: "Dawai chal rahi hai, report nahi aayi",
-  ASHA_ONLY: "Report aayi hai, dawai nahi chal rahi",
+  CONFIRMED: { en: "Confirmed from both sides", hi: "Dono taraf se pakka" },
+  MEDICINE_ONLY: { en: "Medicine moving, no report", hi: "Dawai chal rahi hai, report nahi aayi" },
+  ASHA_ONLY: { en: "Reported, no medicine moving", hi: "Report aayi hai, dawai nahi chal rahi" },
 };
 
 const STATUS_ACTION = {
-  CONFIRMED: "Supply aur field team dono bhejiye — ye sabse pakka signal hai.",
-  MEDICINE_ONLY: "Is area me ASHA survey karwaiye — log bimaar hain par ginti me nahi aa rahe.",
-  ASHA_ONLY: "Report verify kijiye aur dekhiye ki dawai stock me hai bhi ya nahi.",
+  CONFIRMED: {
+    en: "Send both supply and a field team — this is the strongest signal available.",
+    hi: "Supply aur field team dono bhejiye — ye sabse pakka signal hai.",
+  },
+  MEDICINE_ONLY: {
+    en: "Run an ASHA survey here — people are ill but are not being counted.",
+    hi: "Is area me ASHA survey karwaiye — log bimaar hain par ginti me nahi aa rahe.",
+  },
+  ASHA_ONLY: {
+    en: "Verify the report, and check whether the medicine is even in stock.",
+    hi: "Report verify kijiye aur dekhiye ki dawai stock me hai bhi ya nahi.",
+  },
 };
 
 /** One line per disease: what was seen, what it means, what to do. */
-export function explainCorrelationRow(row) {
+export function explainCorrelationRow(row, locale) {
+  const t = translatorFor(locale);
+  const headline = STATUS_HEADLINE[row.status];
+  const action = STATUS_ACTION[row.status];
+
   return {
     disease: row.disease,
-    headline: STATUS_HEADLINE[row.status] || row.status,
-    action: STATUS_ACTION[row.status] || "",
+    headline: headline ? t(headline.en, headline.hi) : row.status,
+    action: action ? t(action.en, action.hi) : "",
     evidence: {
       ashaCases: row.ashaCases,
       pickups: row.orderDemand,
@@ -58,7 +73,8 @@ function describeTrend(series) {
  * The paragraph at the top of the area: what the two sides are each saying, whether
  * they agree, and what an admin should do about it today.
  */
-export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCases }) {
+export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCases, locale }) {
+  const t = translatorFor(locale);
   const where = area.village ? `${area.village}, ${area.district}` : area.district;
   const lines = [];
 
@@ -67,31 +83,49 @@ export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCas
   const unbacked = correlation.filter((row) => row.status === "ASHA_ONLY");
 
   lines.push(
-    `${where} me pichhle ${ashaSide.windowDays} din me ASHA workers ne ${ashaSide.reportCount} report bheji (${ashaSide.totalCases} case), aur medical side se ${medicalSide.pickupCount} JanSetu pickup aur ${medicalSide.counterSaleCount} counter sale darj hui.`
+    t(
+      `Over the last ${ashaSide.windowDays} days in ${where}, ASHA workers filed ${ashaSide.reportCount} reports (${ashaSide.totalCases} cases), and the medical side recorded ${medicalSide.pickupCount} JanSetu pickups and ${medicalSide.counterSaleCount} counter sales.`,
+      `${where} me pichhle ${ashaSide.windowDays} din me ASHA workers ne ${ashaSide.reportCount} report bheji (${ashaSide.totalCases} case), aur medical side se ${medicalSide.pickupCount} JanSetu pickup aur ${medicalSide.counterSaleCount} counter sale darj hui.`
+    )
   );
 
   if (!correlation.length) {
     lines.push(
-      "Kisi bhi bimari ke liye dono me se koi bhi source apne minimum floor se upar nahi gaya — yaani abhi is area me koi sabooot layak signal nahi hai."
+      t(
+        "For every illness, neither source cleared its minimum floor — so there is no evidence-worthy signal in this area right now.",
+        "Kisi bhi bimari ke liye dono me se koi bhi source apne minimum floor se upar nahi gaya — yaani abhi is area me koi sabooot layak signal nahi hai."
+      )
     );
     return { where, summary: lines.join(" "), trend: null, priorities: [] };
   }
 
   if (confirmed.length) {
+    const named = confirmed.map((row) => row.disease).join(", ");
     lines.push(
-      `${confirmed.map((row) => row.disease).join(", ")} par field report aur dawai dono ek hi baat keh rahe hain — ye sabse bharosemand nateeja hai.`
+      t(
+        `For ${named}, the field reports and the medicine say the same thing — this is the most reliable conclusion available.`,
+        `${named} par field report aur dawai dono ek hi baat keh rahe hain — ye sabse bharosemand nateeja hai.`
+      )
     );
   }
 
   if (surveyNeeded.length) {
+    const named = surveyNeeded.map((row) => row.disease).join(", ");
     lines.push(
-      `${surveyNeeded.map((row) => row.disease).join(", ")} ke liye dawai chal rahi hai par ek bhi ASHA report nahi — ye under-reporting ka sabse seedha ishara hai, yahan survey bhejna chahiye.`
+      t(
+        `For ${named} medicine is moving but not one ASHA report has come in — the clearest sign of under-reporting there is. A survey should be sent here.`,
+        `${named} ke liye dawai chal rahi hai par ek bhi ASHA report nahi — ye under-reporting ka sabse seedha ishara hai, yahan survey bhejna chahiye.`
+      )
     );
   }
 
   if (unbacked.length) {
+    const named = unbacked.map((row) => row.disease).join(", ");
     lines.push(
-      `${unbacked.map((row) => row.disease).join(", ")} sirf report me hai, dawai me nahi. Ho sakta hai abhi shuruaat ho, ya count zyada likha gaya ho.`
+      t(
+        `${named} appears only in the reports, not in the medicine. It may be very early, or the count may have been overstated.`,
+        `${named} sirf report me hai, dawai me nahi. Ho sakta hai abhi shuruaat ho, ya count zyada likha gaya ho.`
+      )
     );
   }
 
@@ -99,16 +133,26 @@ export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCas
     (row) => row.magnitudeAgreement === "ASHA_HEAVY" || row.magnitudeAgreement === "MEDICINE_HEAVY"
   );
   if (mismatched.length) {
+    const named = mismatched.map((row) => row.disease).join(", ");
     lines.push(
-      `${mismatched.map((row) => row.disease).join(", ")} me dono aankdon ka paimana mel nahi kha raha, isliye unki confidence jaan boojh kar kam rakhi gayi hai.`
+      t(
+        `For ${named} the two figures do not agree on scale, so their confidence was deliberately held down.`,
+        `${named} me dono aankdon ka paimana mel nahi kha raha, isliye unki confidence jaan boojh kar kam rakhi gayi hai.`
+      )
     );
   }
 
   const trend = describeTrend(dailyCases);
   if (trend) {
     const word =
-      trend.direction === "RISING" ? "badh raha hai" : trend.direction === "FALLING" ? "ghat raha hai" : "sthir hai";
-    lines.push(`Case trend ${word} (${trend.changePercent > 0 ? "+" : ""}${trend.changePercent}%).`);
+      trend.direction === "RISING"
+        ? t("is rising", "badh raha hai")
+        : trend.direction === "FALLING"
+          ? t("is falling", "ghat raha hai")
+          : t("is flat", "sthir hai");
+    lines.push(
+      `${t("Case trend", "Case trend")} ${word} (${trend.changePercent > 0 ? "+" : ""}${trend.changePercent}%).`
+    );
   }
 
   // Highest-confidence actionable rows first — that is the order an admin should work in.
@@ -116,11 +160,14 @@ export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCas
     .filter((row) => row.status !== "ASHA_ONLY")
     .sort((left, right) => right.confidence - left.confidence)
     .slice(0, 3)
-    .map((row) => ({
-      disease: row.disease,
-      action: STATUS_ACTION[row.status],
-      confidence: row.confidence,
-    }));
+    .map((row) => {
+      const action = STATUS_ACTION[row.status];
+      return {
+        disease: row.disease,
+        action: action ? t(action.en, action.hi) : "",
+        confidence: row.confidence,
+      };
+    });
 
   return { where, summary: lines.join(" "), trend, priorities };
 }
@@ -129,32 +176,44 @@ export function explainArea({ area, correlation, ashaSide, medicalSide, dailyCas
  * Why the map looks the way it does — the zone colours in words, so an admin reading
  * the map is not left guessing what made a village red.
  */
-export function explainMap(zones) {
+export function explainMap(zones, locale) {
+  const t = translatorFor(locale);
   if (!zones.length) {
-    return "Map par abhi koi zone nahi hai — is scope me kisi area se report ya dawai movement nahi aayi.";
+    return t(
+      "There is no zone on the map yet — no area in this scope has produced a report or any medicine movement.",
+      "Map par abhi koi zone nahi hai — is scope me kisi area se report ya dawai movement nahi aayi."
+    );
   }
 
   const high = zones.filter((zone) => zone.riskLevel === "HIGH");
   const medium = zones.filter((zone) => zone.riskLevel === "MEDIUM");
 
-  const parts = [`Map par ${zones.length} area hain.`];
+  const parts = [
+    t(`There are ${zones.length} areas on the map.`, `Map par ${zones.length} area hain.`),
+  ];
 
   if (high.length) {
     parts.push(
-      `Laal (HIGH): ${high.map((zone) => `${zone.village} (${zone.cases} case${zone.medicineDemand ? `, ${zone.medicineDemand} patient-equivalent dawai` : ""})`).join("; ")}. Inhe pehle dekhiye.`
+      t(
+        `Red (HIGH): ${high.map((zone) => `${zone.village} (${zone.cases} cases${zone.medicineDemand ? `, ${zone.medicineDemand} patient-equivalents of medicine` : ""})`).join("; ")}. Look at these first.`,
+        `Laal (HIGH): ${high.map((zone) => `${zone.village} (${zone.cases} case${zone.medicineDemand ? `, ${zone.medicineDemand} patient-equivalent dawai` : ""})`).join("; ")}. Inhe pehle dekhiye.`
+      )
     );
   }
   if (medium.length) {
     parts.push(`Peela (MEDIUM): ${medium.map((zone) => zone.village).join(", ")}.`);
   }
   if (!high.length && !medium.length) {
-    parts.push("Koi area high ya medium risk par nahi hai.");
+    parts.push(t("No area is at high or medium risk.", "Koi area high ya medium risk par nahi hai."));
   }
 
   const withoutReports = zones.filter((zone) => zone.cases === 0 && zone.medicineDemand > 0);
   if (withoutReports.length) {
     parts.push(
-      `Dhyan dijiye — ${withoutReports.map((zone) => zone.village).join(", ")} me dawai to chal rahi hai par ek bhi report nahi aayi. Map par ye area khaali dikhega, par khaali hai nahi.`
+      t(
+        `Note — medicine is moving in ${withoutReports.map((zone) => zone.village).join(", ")} but not one report has come in. These areas will look empty on the map, and they are not.`,
+        `Dhyan dijiye — ${withoutReports.map((zone) => zone.village).join(", ")} me dawai to chal rahi hai par ek bhi report nahi aayi. Map par ye area khaali dikhega, par khaali hai nahi.`
+      )
     );
   }
 

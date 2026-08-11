@@ -7,8 +7,9 @@ import Prescription from "@/app/lib/schema/prescriptionSchema";
 import { logServerError } from "@/app/lib/server-log";
 import { generateJson } from "@/app/lib/ai/gemini";
 import { buildMedicineContext, findRelevantMedicines } from "@/app/lib/ai/medicine-retrieval";
+import { localeFromRequest } from "@/app/lib/i18n/server";
 import {
-  ASSISTANT_SYSTEM_PROMPT,
+  assistantSystemPrompt,
   CHAT_RESPONSE_SCHEMA,
   buildEmergencyReply,
   buildFallbackReply,
@@ -75,6 +76,8 @@ function extractSymptomKeywords(text, matches) {
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
+  // The assistant answers in the language the reader chose for the rest of the app.
+  const locale = localeFromRequest(request);
 
   if (!session?.user?.id) {
     return Response.json(
@@ -104,7 +107,7 @@ export async function POST(request) {
     const { isEmergency, flags } = detectRedFlags(userMessage);
 
     if (isEmergency) {
-      const reply = buildEmergencyReply(flags);
+      const reply = buildEmergencyReply(flags, locale);
       chat.messages.push({ role: "assistant", content: reply, intent: "EMERGENCY" });
       chat.lastActiveAt = new Date();
       await chat.save();
@@ -176,12 +179,12 @@ export async function POST(request) {
       .join("\n");
 
     const result = await generateJson(prompt, CHAT_RESPONSE_SCHEMA, {
-      systemInstruction: ASSISTANT_SYSTEM_PROMPT,
+      systemInstruction: assistantSystemPrompt(locale),
       temperature: 0.5,
     });
 
     const reply =
-      result?.reply?.trim() || buildFallbackReply({ turnCount: chat.messages.length });
+      result?.reply?.trim() || buildFallbackReply({ turnCount: chat.messages.length, locale });
     const stage = result?.stage === "RECOMMENDING" ? "RECOMMENDING" : "GATHERING";
     const rawRecommendations = stage === "RECOMMENDING" ? result?.recommendations || [] : [];
 

@@ -18,10 +18,11 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Chip, Panel, ScreenHeader, TabNav } from "@/app/components/screen-ui";
+import { useT } from "@/app/components/i18n/locale-provider";
 
 const RESIDENT_TABS = [
-  { href: "/sehat", label: "Sehat Sahayak" },
-  { href: "/sehat/profile", label: "Mera health record" },
+  { href: "/sehat", label: { en: "Sehat Sahayak", hi: "Sehat Sahayak" } },
+  { href: "/sehat/profile", label: { en: "My health record", hi: "Mera health record" } },
 ];
 
 function formatDate(value) {
@@ -64,6 +65,7 @@ function ListCard({ icon: Icon, title, items, tone = "plain", hint }) {
 }
 
 export default function ProfileClient({ user }) {
+  const t = useT();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -76,7 +78,7 @@ export default function ProfileClient({ user }) {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      toast.error("Profile load nahi hui", { description: body?.message });
+      toast.error(t("Could not load the profile", "Profile load nahi hui"), { description: body?.message });
       return;
     }
     setData(body.data);
@@ -90,7 +92,7 @@ export default function ProfileClient({ user }) {
     setIsRefreshing(true);
     try {
       await load(true);
-      toast.success("Report update ho gayi");
+      toast.success(t("Report updated", "Report update ho gayi"));
     } finally {
       setIsRefreshing(false);
     }
@@ -110,11 +112,11 @@ export default function ProfileClient({ user }) {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      toast.error("Delete nahi hua", { description: body?.message });
+      toast.error(t("Not deleted", "Delete nahi hua"), { description: body?.message });
       return;
     }
 
-    toast.success("Record hata diya gaya");
+    toast.success(t("Record removed", "Record hata diya gaya"));
     setOpenEpisode(null);
     setIsRefreshing(true);
     await load();
@@ -123,14 +125,17 @@ export default function ProfileClient({ user }) {
 
   const areaLabel = user?.location?.village
     ? `${user.location.village}${user.location.district ? `, ${user.location.district}` : ""}`
-    : "Apna ilaaka";
+    : t("Your area", "Apna ilaaka");
 
   const header = (
     <>
       <ScreenHeader
         kicker={`Resident · ${areaLabel}`}
-        title="Mera health record."
-        subtitle="Har takleef alag se save hai. Isi record se aapki apni report banti hai — doctor ko dikhane ke liye."
+        title={t("My health record.", "Mera health record.")}
+        subtitle={t(
+          "Every complaint is saved separately. Your own report is built from this record — to show a doctor.",
+          "Har takleef alag se save hai. Isi record se aapki apni report banti hai — doctor ko dikhane ke liye."
+        )}
         actions={
           data?.hasHistory ? (
             <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={isRefreshing}>
@@ -139,7 +144,7 @@ export default function ProfileClient({ user }) {
               ) : (
                 <RefreshCw size={13} />
               )}
-              Report refresh
+              {t("Refresh report", "Report refresh")}
             </Button>
           ) : null
         }
@@ -153,7 +158,7 @@ export default function ProfileClient({ user }) {
       <div className="space-y-7">
         {header}
         <p className="js-card p-10 text-center text-sm text-muted-2">
-          Aapka record load ho raha hai…
+          {t("Loading your record…", "Aapka record load ho raha hai…")}
         </p>
       </div>
     );
@@ -165,12 +170,12 @@ export default function ProfileClient({ user }) {
         {header}
         <section className="js-card p-10 text-center">
           <Activity size={28} className="mx-auto text-brand" />
-          <h2 className="js-display mt-3 text-xl text-ink">Abhi koi record nahi</h2>
+          <h2 className="js-display mt-3 text-xl text-ink">{t("No record yet", "Abhi koi record nahi")}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
             {data?.message}
           </p>
           <Button asChild className="mt-5">
-            <Link href="/sehat">Sehat Sahayak se baat kijiye</Link>
+            <Link href="/sehat">{t("Talk to Sehat Sahayak", "Sehat Sahayak se baat kijiye")}</Link>
           </Button>
         </section>
       </div>
@@ -190,7 +195,7 @@ export default function ProfileClient({ user }) {
                 </p>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => setOpenEpisode(null)}>
-                Band
+                {t("Close", "Band")}
               </Button>
             </div>
 
@@ -220,7 +225,7 @@ export default function ProfileClient({ user }) {
               className="mt-5 border-danger-line text-danger-ink hover:border-danger hover:bg-danger-bg hover:text-danger-ink"
             >
               <Trash2 size={14} />
-              Ye record hata dijiye
+              {t("Delete this record", "Ye record hata dijiye")}
             </Button>
           </div>
         </div>
@@ -234,13 +239,13 @@ export default function ProfileClient({ user }) {
             <div>
               <h2 className="js-display text-xl text-ink">{user.name}</h2>
               <p className="js-mono mt-1.5 text-[9px] tracking-[0.14em] text-muted-2">
-                {areaLabel} · {data.totalEpisodes} record
+                {areaLabel} · {data.totalEpisodes} {t("records", "record")}
               </p>
             </div>
             {data.generatedAt ? (
               <Chip>
                 {formatDate(data.generatedAt)}
-                {data.episodesUsed ? ` · ${data.episodesUsed} record` : ""}
+                {data.episodesUsed ? ` · ${data.episodesUsed} ${t("records", "record")}` : ""}
               </Chip>
             ) : null}
           </div>
@@ -262,8 +267,11 @@ export default function ProfileClient({ user }) {
 
         {data.patterns?.length ? (
           <Panel
-            title="Baar-baar kya ho raha hai"
-            description="Ek se zyada baar dikhe hue pattern, unke saboot ke saath."
+            title={t("What keeps happening", "Baar-baar kya ho raha hai")}
+            description={t(
+              "Patterns seen more than once, with the evidence for each.",
+              "Ek se zyada baar dikhe hue pattern, unke saboot ke saath."
+            )}
           >
             <div className="space-y-2.5">
               {data.patterns.map((item, index) => (
@@ -288,19 +296,19 @@ export default function ProfileClient({ user }) {
 
         <ListCard
           icon={ShieldCheck}
-          title="Aage ye bimari na ho, iske liye"
+          title={t("To stop this happening again", "Aage ye bimari na ho, iske liye")}
           items={data.preventionPlan}
           tone="brand"
         />
 
         <div className="grid gap-5 md:grid-cols-2">
-          <ListCard icon={Dumbbell} title="Halki kasrat" items={data.exercisePlan} />
-          <ListCard icon={Apple} title="Khaan-paan" items={data.dietAdvice} />
+          <ListCard icon={Dumbbell} title={t("Light exercise", "Halki kasrat")} items={data.exercisePlan} />
+          <ListCard icon={Apple} title={t("Food and drink", "Khaan-paan")} items={data.dietAdvice} />
         </div>
 
         <ListCard
           icon={AlertTriangle}
-          title="In nishaniyon par doctor ke paas jaiye"
+          title={t("See a doctor if you notice these", "In nishaniyon par doctor ke paas jaiye")}
           items={data.warningSigns}
           tone="danger"
         />
@@ -308,20 +316,23 @@ export default function ProfileClient({ user }) {
         <div className="grid gap-5 md:grid-cols-2">
           <ListCard
             icon={Package}
-            title="Ghar me ye rakhiye"
+            title={t("Keep these at home", "Ghar me ye rakhiye")}
             items={data.homeKit}
-            hint="Aapke saath jo baar-baar hota hai, uske hisaab se."
+            hint={t(
+              "Based on what happens to you repeatedly.",
+              "Aapke saath jo baar-baar hota hai, uske hisaab se."
+            )}
           />
           <ListCard
             icon={AlertTriangle}
-            title="Kis wajah se dobara ho sakta hai"
+            title={t("What could bring it back", "Kis wajah se dobara ho sakta hai")}
             items={data.riskFactors}
             tone="warn"
           />
         </div>
 
         {data.doctorNotes ? (
-          <Panel title="Doctor ko ye bataiye">
+          <Panel title={t("Tell the doctor this", "Doctor ko ye bataiye")}>
             <p className="flex items-start gap-2.5 text-sm leading-[1.7] text-ink-2">
               <Stethoscope size={15} className="mt-0.5 shrink-0 text-brand" />
               {data.doctorNotes}
@@ -330,8 +341,11 @@ export default function ProfileClient({ user }) {
         ) : null}
 
         <Panel
-          title="Mera record"
-          description="Kisi bhi record par tap karke poori baat-cheet dekh sakte hain ya use hata sakte hain."
+          title={t("My record", "Mera record")}
+          description={t(
+            "Tap any record to read the whole conversation, or to remove it.",
+            "Kisi bhi record par tap karke poori baat-cheet dekh sakte hain ya use hata sakte hain."
+          )}
         >
           <div className="space-y-2">
             {data.timeline.map((episode) => (
@@ -355,7 +369,7 @@ export default function ProfileClient({ user }) {
                 <div className="shrink-0 text-right">
                   <p className="js-code text-[10.5px] text-muted">{formatDate(episode.startedAt)}</p>
                   <p className="js-mono mt-1 text-[8.5px] tracking-[0.12em] text-brand">
-                    {episode.status === "ACTIVE" ? "Chal raha hai" : "Poora hua"}
+                    {episode.status === "ACTIVE" ? t("Ongoing", "Chal raha hai") : t("Finished", "Poora hua")}
                   </p>
                 </div>
               </button>
@@ -364,7 +378,7 @@ export default function ProfileClient({ user }) {
         </Panel>
 
         {data.medicines?.length ? (
-          <Panel title="Jo dawai aapne li">
+          <Panel title={t("Medicine you collected", "Jo dawai aapne li")}>
             <div className="space-y-1.5">
               {data.medicines.map((medicine, index) => (
                 <div
@@ -384,8 +398,10 @@ export default function ProfileClient({ user }) {
         ) : null}
 
         <p className="rounded-[16px] border border-line bg-brand-tint-2 px-4 py-3 text-xs leading-relaxed text-muted">
-          Ye report aapki apni baat-cheet se bani hai. Ye doctor ki jaanch ki jagah nahi leti —
-          isse doctor ko dikhaiye, uske bajay mat istemal kijiye.
+          {t(
+            "This report is built from your own conversations. It does not replace a doctor's examination — show it to a doctor rather than using it instead of one.",
+            "Ye report aapki apni baat-cheet se bani hai. Ye doctor ki jaanch ki jagah nahi leti — isse doctor ko dikhaiye, uske bajay mat istemal kijiye."
+          )}
         </p>
       </div>
     </>

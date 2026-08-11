@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWorkspace } from "@/app/workspace/workspace-context";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { canSeeAllAreas } from "@/app/lib/auth/role-home";
 import { Button } from "@/components/ui/button";
 import { Chip, EmptyState, Panel, StatCard } from "@/app/components/screen-ui";
@@ -157,6 +158,7 @@ function VerdictCard({ row }) {
 }
 
 export function InsightsView() {
+  const t = useT();
   const { user, selectedRegion } = useWorkspace();
 
   // Only an admin chooses a district. For everyone else the server pins the area to
@@ -190,7 +192,7 @@ export function InsightsView() {
           credentials: "same-origin",
         });
         const payload = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(payload?.message || "Insight load nahi hua.");
+        if (!res.ok) throw new Error(payload?.message || t("Could not load the insight.", "Insight load nahi hua."));
 
         if (payload.data?.needsArea) {
           setDistricts(payload.data.districts || []);
@@ -221,15 +223,18 @@ export function InsightsView() {
       <WorkspaceHeader
         user={user}
         title="Every conclusion, with its working."
-        subtitle="Field reports, JanSetu pickups aur counter sales ko jodkar banaya gaya nateeja — wajah ke saath, aur neeche ye bhi ki ye engine khud kitna sahi hai."
+        subtitle={t(
+          "A conclusion built from field reports, JanSetu pickups and counter sales — with its reasoning, and below it, how accurate the engine itself is.",
+          "Field reports, JanSetu pickups aur counter sales ko jodkar banaya gaya nateeja — wajah ke saath, aur neeche ye bhi ki ye engine khud kitna sahi hai."
+        )}
       />
 
       <Panel
-        title="Area"
-        description="Jin districts me data hai wahi list me hain."
+        title={t("Area", "Area")}
+        description={t("Only districts that have data are listed.", "Jin districts me data hai wahi list me hain.")}
         actions={
           <Button type="button" onClick={() => load()} disabled={isLoading}>
-            {isLoading ? "Load ho raha…" : "Dekhiye"}
+            {isLoading ? t("Loading…", "Load ho raha…") : t("Show", "Dekhiye")}
           </Button>
         }
       >
@@ -255,7 +260,7 @@ export function InsightsView() {
             </label>
           ) : (
             <div className="js-mono flex flex-col gap-1.5 text-[9px] tracking-[0.14em] text-muted-2">
-              Aapka area
+              {t("Your area", "Aapka area")}
               <p className="flex h-10 min-w-44 items-center rounded-xl border border-line bg-brand-tint-2 px-3 font-sans text-sm tracking-normal text-ink normal-case">
                 {user?.location?.district || "—"}
               </p>
@@ -290,7 +295,7 @@ export function InsightsView() {
           {/* ---------- What the engine concluded, in words ---------- */}
           <Panel
             tone="brand"
-            title="Nateeja — aur uski wajah"
+            title={t("The conclusion — and why", "Nateeja — aur uski wajah")}
             actions={
               <>
                 <Chip>
@@ -303,7 +308,7 @@ export function InsightsView() {
                   onClick={() => load({ narrate: true })}
                   disabled={isNarrating}
                 >
-                  {isNarrating ? "Likh raha…" : "Aur saral kijiye"}
+                  {isNarrating ? t("Writing…", "Likh raha…") : t("Explain more simply", "Aur saral kijiye")}
                 </Button>
               </>
             }
@@ -370,7 +375,9 @@ export function InsightsView() {
                   </div>
                 ))}
                 {!data.ashaSide.byDisease.length ? (
-                  <EmptyState className="py-4">Is window me koi ASHA report nahi.</EmptyState>
+                  <EmptyState className="py-4">
+                    {t("No ASHA report in this window.", "Is window me koi ASHA report nahi.")}
+                  </EmptyState>
                 ) : null}
               </div>
             </Panel>
@@ -389,7 +396,11 @@ export function InsightsView() {
                   reveal={false}
                   label="Counter sales"
                   value={data.medicalSide.counterSaleCount}
-                  hint={data.medicalSide.counterSalesTracked ? undefined : "abhi darj nahi ho rahi"}
+                  hint={
+                    data.medicalSide.counterSalesTracked
+                      ? undefined
+                      : t("not recorded yet", "abhi darj nahi ho rahi")
+                  }
                 />
                 <StatCard
                   reveal={false}
@@ -406,7 +417,7 @@ export function InsightsView() {
               </div>
 
               <p className="js-mono mt-4 text-[9px] tracking-[0.14em] text-muted-2">
-                Sabse tez bikne wali
+                {t("Fastest moving", "Sabse tez bikne wali")}
               </p>
               <div className="mt-2 space-y-1.5">
                 {data.medicalSide.fastMovers.map((row) => (
@@ -422,7 +433,9 @@ export function InsightsView() {
                   </div>
                 ))}
                 {!data.medicalSide.fastMovers.length ? (
-                  <EmptyState className="py-4">Is window me koi dawai nahi bini.</EmptyState>
+                  <EmptyState className="py-4">
+                    {t("No medicine sold in this window.", "Is window me koi dawai nahi bini.")}
+                  </EmptyState>
                 ) : null}
               </div>
             </Panel>
@@ -433,8 +446,10 @@ export function InsightsView() {
             <div>
               <h2 className="js-display text-xl text-ink">By disease, with the reasoning.</h2>
               <p className="mt-1.5 text-sm text-muted">
-                Har row me dono side ka aankda, unka mel, aur poori wajah — kisi bhi row par click
-                kijiye.
+                {t(
+                  "Each row carries both sides' figures, whether they agree, and the full reasoning — click any row.",
+                  "Har row me dono side ka aankda, unka mel, aur poori wajah — kisi bhi row par click kijiye."
+                )}
               </p>
             </div>
 
@@ -453,7 +468,7 @@ export function InsightsView() {
           </section>
 
           {/* ---------- Map, explained ---------- */}
-          <Panel title="Map kya keh raha hai">
+          <Panel title={t("What the map is saying", "Map kya keh raha hai")}>
             <p className="text-sm leading-[1.75] text-ink-2">{data.mapExplanation}</p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -485,7 +500,10 @@ export function InsightsView() {
               </div>
 
               <Panel
-                title="1. Synthetic accuracy — banaye gaye scenarios par"
+                title={t(
+                  "1. Synthetic accuracy — on constructed scenarios",
+                  "1. Synthetic accuracy — banaye gaye scenarios par"
+                )}
                 description={validation.synthetic.caveat}
               >
                 <div className="grid gap-5 lg:grid-cols-2">
@@ -555,26 +573,29 @@ export function InsightsView() {
               </Panel>
 
               <Panel
-                title="2. Source agreement — asli data par"
+                title={t(
+                  "2. Source agreement — on real data",
+                  "2. Source agreement — asli data par"
+                )}
                 description={validation.agreement.caveat}
               >
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-[12px] border border-brand-line bg-brand-tint px-3 py-3 text-center">
                     <p className="js-mono text-[8px] tracking-[0.12em] text-brand-strong">
-                      Dono agree
+                      {t("Both agree", "Dono agree")}
                     </p>
                     <p className="js-num mt-2 text-2xl text-brand-strong">
                       {validation.agreement.cells.bothAgree}
                     </p>
                   </div>
                   <div className="rounded-[12px] border border-line bg-brand-tint-2 px-3 py-3 text-center">
-                    <p className="js-mono text-[8px] tracking-[0.12em] text-muted-2">Sirf ASHA</p>
+                    <p className="js-mono text-[8px] tracking-[0.12em] text-muted-2">{t("ASHA only", "Sirf ASHA")}</p>
                     <p className="js-num mt-2 text-2xl text-ink">
                       {validation.agreement.cells.ashaOnly}
                     </p>
                   </div>
                   <div className="rounded-[12px] border border-warn-line bg-warn-bg px-3 py-3 text-center">
-                    <p className="js-mono text-[8px] tracking-[0.12em] text-warn-ink">Sirf dawai</p>
+                    <p className="js-mono text-[8px] tracking-[0.12em] text-warn-ink">{t("Medicine only", "Sirf dawai")}</p>
                     <p className="js-num mt-2 text-2xl text-warn-ink">
                       {validation.agreement.cells.medicineOnly}
                     </p>
@@ -589,7 +610,12 @@ export function InsightsView() {
                 </p>
               </Panel>
 
-              <Panel title="3. Backtest — asli accuracy ka ek hi imaandaar tareeka">
+              <Panel
+                title={t(
+                  "3. Backtest — the one honest measure of real accuracy",
+                  "3. Backtest — asli accuracy ka ek hi imaandaar tareeka"
+                )}
+              >
                 {validation.backtest.status === "INSUFFICIENT_DATA" ? (
                   <>
                     <p className="text-xs leading-relaxed text-muted">
@@ -603,8 +629,8 @@ export function InsightsView() {
                         >
                           <span className="font-medium text-ink-2">{item.metric}</span>
                           <span className="js-code text-[10.5px] text-muted-2">
-                            chahiye <strong className="text-ink">{item.need}</strong>, abhi hai{" "}
-                            <strong className="text-ink">{item.have}</strong>
+                            {t("needs", "chahiye")} <strong className="text-ink">{item.need}</strong>,{" "}
+                            {t("has", "abhi hai")} <strong className="text-ink">{item.have}</strong>
                           </span>
                         </div>
                       ))}

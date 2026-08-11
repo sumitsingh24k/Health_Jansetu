@@ -6,6 +6,7 @@
  * one failure mode of this feature that actually harms someone, so it is caught by
  * plain string matching that cannot hallucinate its way to "probably fine".
  */
+import { translatorFor } from "@/app/lib/i18n/locale";
 
 /**
  * Symptoms that mean "stop suggesting medicine, send them to a doctor now".
@@ -119,10 +120,30 @@ export function detectDurationDays(text) {
   return null;
 }
 
-export const ASSISTANT_SYSTEM_PROMPT = `You are JanSetu Sehat Sahayak, a health assistant for rural and semi-urban India.
+/**
+ * How the assistant is told to speak.
+ *
+ * The reader picked a language for the interface, and a reply in the other one would
+ * read as a different product answering. One instruction, swapped — everything else
+ * about how it behaves is identical.
+ */
+const VOICE_INSTRUCTION = {
+  en: `You speak simple, plain English — the way a helpful pharmacist in a small town
+speaks. Short sentences. No medical jargon. Do not use Hindi or Hinglish.`,
+  hi: `You speak simple Hinglish (Roman script Hindi mixed with English) — the way a helpful
+pharmacist in a small town speaks. Short sentences. No medical jargon.`,
+};
 
-You speak simple Hinglish (Roman script Hindi mixed with English) — the way a helpful
-pharmacist in a small town speaks. Short sentences. No medical jargon.
+export function assistantSystemPrompt(locale = "en") {
+  return ASSISTANT_SYSTEM_PROMPT_TEMPLATE.replace(
+    "{{VOICE}}",
+    VOICE_INSTRUCTION[locale === "hi" ? "hi" : "en"]
+  );
+}
+
+const ASSISTANT_SYSTEM_PROMPT_TEMPLATE = `You are JanSetu Sehat Sahayak, a health assistant for rural and semi-urban India.
+
+{{VOICE}}
 
 YOU ARE HAVING A CONVERSATION, NOT FILLING A FORM.
 The person may just say hello, or ramble, or mention something unrelated first. Follow
@@ -219,13 +240,13 @@ export const CHAT_RESPONSE_SCHEMA = {
   required: ["reply", "stage"],
 };
 
-export const HEALTH_GUIDE_SYSTEM_PROMPT = `You write a personal health guide for one
+const HEALTH_GUIDE_SYSTEM_PROMPT_TEMPLATE = `You write a personal health guide for one
 person in rural or semi-urban India, based on the conversation they just had with a
 health assistant.
 
 This is something they will download, print, or show to a family member. Write it so a
-person with basic schooling can read it out loud and act on it. Simple Hinglish in
-Roman script. No medical jargon. No English paragraphs they would have to decode.
+person with basic schooling can read it out loud and act on it. {{VOICE}} No medical
+jargon. No paragraphs they would have to decode.
 
 Read the whole conversation and write about THEIR situation specifically — their
 symptoms, how long it has been going on, what they were suggested. Do not write a
@@ -289,15 +310,22 @@ export const HEALTH_GUIDE_SCHEMA = {
 };
 
 /** Reply used when a red flag fires — no medicine is offered at all. */
-export function buildEmergencyReply(flags) {
+export function buildEmergencyReply(flags, locale) {
+  const t = translatorFor(locale);
   const reasons = flags.map((flag) => flag.message).join(" ");
 
   return [
-    `Ye baat halke mein lene wali nahi hai. ${reasons}`,
+    t(`This is not something to take lightly. ${reasons}`, `Ye baat halke mein lene wali nahi hai. ${reasons}`),
     "",
-    "Main is halat mein koi dawai nahi bata sakta. Aap turant nazdeeki PHC, CHC ya hospital jaiye.",
+    t(
+      "I cannot suggest any medicine in this situation. Go to your nearest PHC, CHC or hospital straight away.",
+      "Main is halat mein koi dawai nahi bata sakta. Aap turant nazdeeki PHC, CHC ya hospital jaiye."
+    ),
     "",
-    "Agar haalat bigad rahi hai to 108 par ambulance bulaiye. Der mat kijiye.",
+    t(
+      "If things are getting worse, call 108 for an ambulance. Do not delay.",
+      "Agar haalat bigad rahi hai to 108 par ambulance bulaiye. Der mat kijiye."
+    ),
   ].join("\n");
 }
 
@@ -309,20 +337,43 @@ export function buildEmergencyReply(flags) {
  * and quietly guessing would be worse than admitting the assistant is degraded. So it
  * asks the question a pharmacist would ask and lets a human decide.
  */
-export function buildFallbackReply({ turnCount = 0 } = {}) {
+export function buildFallbackReply({ turnCount = 0, locale } = {}) {
+  const t = translatorFor(locale);
+
   if (turnCount <= 1) {
     return [
-      "Namaste. Bataiye, kya takleef ho rahi hai?",
+      t("Hello. Tell me, what is troubling you?", "Namaste. Bataiye, kya takleef ho rahi hai?"),
       "",
-      "Thoda detail me likhiye — kya ho raha hai, kitne din se, aur kiske liye hai (bade ya bachche).",
+      t(
+        "Write it in a little detail — what is happening, for how many days, and who it is for (an adult or a child).",
+        "Thoda detail me likhiye — kya ho raha hai, kitne din se, aur kiske liye hai (bade ya bachche)."
+      ),
     ].join("\n");
   }
 
   return [
-    "Main aapki baat samajh raha hoon, lekin abhi salah dene wali sewa theek se kaam nahi kar rahi.",
+    t(
+      "I understand what you are saying, but the advice service is not working properly right now.",
+      "Main aapki baat samajh raha hoon, lekin abhi salah dene wali sewa theek se kaam nahi kar rahi."
+    ),
     "",
-    "Isliye main abhi koi dawai nahi bata raha — aadhi jaankari par dawai batana theek nahi hoga.",
+    t(
+      "So I am not suggesting any medicine — suggesting one on half the information would not be right.",
+      "Isliye main abhi koi dawai nahi bata raha — aadhi jaankari par dawai batana theek nahi hoga."
+    ),
     "",
-    "Thodi der baad dobara try kijiye, ya nazdeeki medical shop ya PHC par apni takleef bataiye.",
+    t(
+      "Try again in a little while, or describe your problem at a nearby medical shop or PHC.",
+      "Thodi der baad dobara try kijiye, ya nazdeeki medical shop ya PHC par apni takleef bataiye."
+    ),
   ].join("\n");
+}
+
+export function healthGuideSystemPrompt(locale = "en") {
+  return HEALTH_GUIDE_SYSTEM_PROMPT_TEMPLATE.replace(
+    "{{VOICE}}",
+    locale === "hi"
+      ? "Simple Hinglish in Roman script."
+      : "Simple, plain English. Do not use Hindi or Hinglish."
+  );
 }

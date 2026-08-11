@@ -143,8 +143,8 @@ const WORKSPACE_NAV = [
 const NAV_BY_ROLE = {
   USER: [
     { id: "sehat", name: "Sehat Sahayak", icon: "chat", href: "/sehat" },
-    { id: "record", name: "Mera health record", icon: "record", href: "/sehat/profile" },
-    { id: "area", name: "Ilaake ki halat", icon: "activity", href: "/" },
+    { id: "record", name: { en: "My health record", hi: "Mera health record" }, icon: "record", href: "/sehat/profile" },
+    { id: "area", name: { en: "Area status", hi: "Ilaake ki halat" }, icon: "activity", href: "/" },
   ],
   // A shop's own data is its shelf, not a survey form. Overview and Reports were on
   // this list, and both were the wrong screen for a pharmacist: Overview totals up
@@ -152,7 +152,7 @@ const NAV_BY_ROLE = {
   // medical shop cannot answer. Not one shop ever filed one. What a shop actually
   // contributes now arrives on its own, from stock movement and confirmed pickups.
   MEDICAL: [
-    { id: "shop", name: "Meri dukaan", icon: "shop", href: "/medical" },
+    { id: "shop", name: { en: "My shop", hi: "Meri dukaan" }, icon: "shop", href: "/medical" },
     { id: "ws-trends", name: "Trends", icon: "trends", href: "/workspace/trends" },
     { id: "ws-map", name: "Map", icon: "map", href: "/workspace/map" },
     { id: "ws-insights", name: "Insights", icon: "insights", href: "/workspace/insights" },
@@ -168,7 +168,7 @@ const NAV_BY_ROLE = {
 
 const GUEST_NAV = [
   { id: "portal", name: "Home", icon: "home", href: "/" },
-  { id: "reg-user", name: "Aam nagrik register", icon: "chat", href: "/register/user" },
+  { id: "reg-user", name: { en: "Citizen register", hi: "Aam nagrik register" }, icon: "chat", href: "/register/user" },
   { id: "reg-asha", name: "ASHA register", icon: "team", href: "/register/asha" },
   { id: "reg-medical", name: "Medical register", icon: "shop", href: "/register/medical" },
 ];

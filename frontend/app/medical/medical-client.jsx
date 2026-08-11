@@ -12,15 +12,16 @@ import {
 } from "recharts";
 import { AlertTriangle, CheckCircle2, FileCheck2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { CHART_INK, SEQUENTIAL_ORANGE } from "@/app/lib/chart-theme";
 import { Chip, EmptyState, Panel, ScreenHeader, StatCard, TabNav } from "@/app/components/screen-ui";
 
 const SHOP_TABS = [
-  { href: "/medical", label: "Meri dukaan" },
-  { href: "/workspace/trends", label: "Trends" },
-  { href: "/workspace/map", label: "Map" },
-  { href: "/workspace/insights", label: "Insights" },
+  { href: "/medical", label: { en: "My shop", hi: "Meri dukaan" } },
+  { href: "/workspace/trends", label: { en: "Trends", hi: "Trends" } },
+  { href: "/workspace/map", label: { en: "Map", hi: "Map" } },
+  { href: "/workspace/insights", label: { en: "Insights", hi: "Insights" } },
 ];
 
 /**
@@ -28,6 +29,7 @@ const SHOP_TABS = [
  * row with a fresh input rather than syncing local state from props in an effect.
  */
 function StockRow({ item, onSave }) {
+  const t = useT();
   const [quantity, setQuantity] = useState(String(item.quantity));
   const [isSaving, setIsSaving] = useState(false);
 
@@ -63,16 +65,16 @@ function StockRow({ item, onSave }) {
           item.isLow ? (
             <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-warn-ink">
               <AlertTriangle size={12} />
-              Kam hai
+              {t("Low", "Kam hai")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-brand">
               <CheckCircle2 size={12} />
-              Theek
+              {t("Fine", "Theek")}
             </span>
           )
         ) : (
-          <span className="text-[11.5px] text-faint">Nahi rakhte</span>
+          <span className="text-[11.5px] text-faint">{t("Not stocked", "Nahi rakhte")}</span>
         )}
       </td>
       <td className="py-3">
@@ -98,19 +100,20 @@ function StockRow({ item, onSave }) {
  * keyboard, paste and screen readers all behave exactly as before.
  */
 function PickupCodeField({ code, onChange, disabled }) {
+  const t = useT();
   const digits = [0, 1, 2, 3];
 
   return (
     <label className="relative block">
-      <span className="sr-only">Pickup code</span>
+      <span className="sr-only">{t("Pickup code", "Pickup code")}</span>
       <input
         value={code}
         onChange={onChange}
         disabled={disabled}
-        placeholder="4 digit code"
+        placeholder={t("4 digit code", "4 digit code")}
         inputMode="numeric"
         autoComplete="one-time-code"
-        aria-label="Pickup code"
+        aria-label={t("Pickup code", "Pickup code")}
         className="peer absolute inset-0 z-10 w-full cursor-text bg-transparent text-transparent caret-transparent outline-none"
       />
       <span className="flex gap-2.5">
@@ -134,6 +137,7 @@ function PickupCodeField({ code, onChange, disabled }) {
 }
 
 export default function MedicalClient({ user }) {
+  const t = useT();
   const [stock, setStock] = useState([]);
   const [orders, setOrders] = useState([]);
   const [summary, setSummary] = useState({});
@@ -172,18 +176,18 @@ export default function MedicalClient({ user }) {
 
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      toast.error("Save nahi hua", { description: body?.message });
+      toast.error(t("Not saved", "Save nahi hua"), { description: body?.message });
       return;
     }
 
-    toast.success("Stock update ho gaya");
+    toast.success(t("Stock updated", "Stock update ho gaya"));
     await loadAll();
   }
 
   async function confirmPickup(event) {
     event.preventDefault();
     if (!/^\d{4}$/.test(code)) {
-      toast.error("4 digit ka code daaliye");
+      toast.error(t("Enter the 4 digit code", "4 digit ka code daaliye"));
       return;
     }
 
@@ -198,11 +202,11 @@ export default function MedicalClient({ user }) {
 
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        toast.error("Confirm nahi hua", { description: body?.message });
+        toast.error(t("Not confirmed", "Confirm nahi hua"), { description: body?.message });
         return;
       }
 
-      toast.success("Pickup confirm", { description: body.data.message });
+      toast.success(t("Pickup confirmed", "Pickup confirm"), { description: body.data.message });
       setCode("");
       await loadAll();
     } finally {
@@ -242,17 +246,20 @@ export default function MedicalClient({ user }) {
     <div className="space-y-7">
       <ScreenHeader
         kicker={`Medical shop · ${user.name}${areaLabel ? ` · ${areaLabel}` : ""}`}
-        title="The counter is the second witness."
-        subtitle="Stock tabhi ghatega jab customer sach me dawai le jaye — aur wahi ek event outbreak signal me gina jata hai."
+        title={t("The counter is the second witness.", "The counter is the second witness.")}
+        subtitle={t(
+          "Stock drops only when a customer actually collects the medicine — and that one event is what the outbreak signal counts.",
+          "Stock tabhi ghatega jab customer sach me dawai le jaye — aur wahi ek event outbreak signal me gina jata hai."
+        )}
       />
 
       <TabNav items={SHOP_TABS} activeHref="/medical" />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Stock me items" value={summary.stockedItems ?? 0} />
-        <StatCard label="Kam stock" value={summary.lowStockItems ?? 0} tone="warn" />
-        <StatCard label="Khatam" value={summary.outOfStockItems ?? 0} tone="danger" />
-        <StatCard label="Pickup baaki" value={orders.length} tone="brand" />
+        <StatCard label={t("Items in stock", "Stock me items")} value={summary.stockedItems ?? 0} />
+        <StatCard label={t("Running low", "Kam stock")} value={summary.lowStockItems ?? 0} tone="warn" />
+        <StatCard label={t("Out of stock", "Khatam")} value={summary.outOfStockItems ?? 0} tone="danger" />
+        <StatCard label={t("Pickups pending", "Pickup baaki")} value={orders.length} tone="brand" />
       </div>
 
       {/* --------------------------------------------------- pickup counter -- */}
@@ -266,14 +273,16 @@ export default function MedicalClient({ user }) {
         />
         <div className="relative">
           <p className="js-mono text-[9.5px] tracking-[0.18em] text-neon">
-            Customer aaya? Code daaliye
+            {t("Customer here? Enter the code", "Customer aaya? Code daaliye")}
           </p>
           <p className="js-display mt-3 text-xl text-white">
-            Code confirm karte hi stock ghatega.
+            {t("Stock drops the moment the code is confirmed.", "Code confirm karte hi stock ghatega.")}
           </p>
           <p className="mt-2 max-w-xl text-[12.5px] leading-[1.65] text-[rgba(233,242,236,0.6)]">
-            Ye sale ilaake ke outbreak signal me gini jayegi. Sirf order karne se kuch nahi
-            hota — asli saboot yahi hai.
+            {t(
+              "This sale counts towards the area's outbreak signal. Placing an order alone does nothing — this is the real evidence.",
+              "Ye sale ilaake ke outbreak signal me gini jayegi. Sirf order karne se kuch nahi hota — asli saboot yahi hai."
+            )}
           </p>
 
           <form onSubmit={confirmPickup} className="mt-6 flex flex-wrap items-center gap-4">
@@ -287,7 +296,7 @@ export default function MedicalClient({ user }) {
               disabled={isConfirming}
               className="bg-neon px-7 text-[13px] text-[#07130c] shadow-[0_0_28px_rgba(94,226,160,0.3)] hover:bg-neon hover:brightness-105"
             >
-              {isConfirming ? "Confirm ho raha…" : "Confirm pickup"}
+              {isConfirming ? t("Confirming…", "Confirm ho raha…") : t("Confirm pickup", "Confirm pickup")}
             </Button>
           </form>
         </div>
@@ -295,13 +304,16 @@ export default function MedicalClient({ user }) {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Panel
-          title="Pending pickups"
-          description="Ye customers dawai lene aayenge. 48 ghante baad order apne aap cancel ho jaata hai."
+          title={t("Pending pickups", "Pending pickups")}
+          description={t(
+            "These customers are coming to collect. An order cancels itself after 48 hours.",
+            "Ye customers dawai lene aayenge. 48 ghante baad order apne aap cancel ho jaata hai."
+          )}
         >
           <div className="space-y-2.5">
-            {isLoading ? <EmptyState>Load ho raha hai…</EmptyState> : null}
+            {isLoading ? <EmptyState>{t("Loading…", "Load ho raha hai…")}</EmptyState> : null}
             {!isLoading && !orders.length ? (
-              <EmptyState>Abhi koi pending order nahi.</EmptyState>
+              <EmptyState>{t("No pending orders yet.", "Abhi koi pending order nahi.")}</EmptyState>
             ) : null}
 
             {orders.map((order) => (
@@ -317,8 +329,8 @@ export default function MedicalClient({ user }) {
                     <p className="mt-0.5 text-[11.5px] text-muted">
                       {order.customerName} ·{" "}
                       {order.intent === "DOCTOR_PRESCRIBED"
-                        ? "Parchi wali dawai"
-                        : "Khud ke liye"}
+                        ? t("Prescription medicine", "Parchi wali dawai")
+                        : t("Self-care", "Khud ke liye")}
                     </p>
                   </div>
                   <span className="js-code shrink-0 rounded-[10px] border border-line bg-card px-3 py-1.5 text-base font-semibold tracking-[0.2em] text-ink">
@@ -335,7 +347,7 @@ export default function MedicalClient({ user }) {
                     <p className="mt-1 text-[11.5px] text-brand-strong">
                       {order.prescription.doctorName
                         ? `Dr. ${order.prescription.doctorName}`
-                        : "Doctor ka naam nahi dikha"}
+                        : t("Doctor's name not legible", "Doctor ka naam nahi dikha")}
                       {order.prescription.clinicName ? ` · ${order.prescription.clinicName}` : ""}
                       {order.prescription.prescribedOn
                         ? ` · ${new Date(order.prescription.prescribedOn).toLocaleDateString("en-IN")}`
@@ -362,8 +374,11 @@ export default function MedicalClient({ user }) {
         </Panel>
 
         <Panel
-          title="Abhi kaunsi dawai maangi ja rahi"
-          description="Pending orders ke hisaab se — pickup confirm hone se pehle ki tasveer."
+          title={t("What is being asked for right now", "Abhi kaunsi dawai maangi ja rahi")}
+          description={t(
+            "From pending orders — the picture before any pickup is confirmed.",
+            "Pending orders ke hisaab se — pickup confirm hone se pehle ki tasveer."
+          )}
         >
           {demandChart.length ? (
             <ResponsiveContainer width="100%" height={Math.max(160, demandChart.length * 34)}>
@@ -403,17 +418,20 @@ export default function MedicalClient({ user }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyState>Abhi koi demand nahi.</EmptyState>
+            <EmptyState>{t("No demand yet.", "Abhi koi demand nahi.")}</EmptyState>
           )}
         </Panel>
       </div>
 
       <Panel
-        title="Stock"
-        description="Quantity badalkar Save dabaiye. Jo dawai aap rakhte hain sirf wahi customers ko suggest hogi."
+        title={t("Stock", "Stock")}
+        description={t(
+          "Change the quantity and press Save. Only medicine you actually stock is suggested to customers.",
+          "Quantity badalkar Save dabaiye. Jo dawai aap rakhte hain sirf wahi customers ko suggest hogi."
+        )}
         actions={
           <label className="relative">
-            <span className="sr-only">Dawai dhoondhiye</span>
+            <span className="sr-only">{t("Search medicine", "Dawai dhoondhiye")}</span>
             <Search
               size={14}
               className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint"
@@ -421,7 +439,7 @@ export default function MedicalClient({ user }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Dawai dhoondhiye"
+              placeholder={t("Search medicine", "Dawai dhoondhiye")}
               className="w-56 rounded-full border border-line bg-card py-2 pr-4 pl-9 text-xs text-ink outline-none transition-colors placeholder:text-faint focus:border-brand"
             />
           </label>
@@ -429,20 +447,20 @@ export default function MedicalClient({ user }) {
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse">
-            <caption className="sr-only">Aapki dukaan ka medicine stock</caption>
+            <caption className="sr-only">{t("Your shop's medicine stock", "Aapki dukaan ka medicine stock")}</caption>
             <thead>
               <tr className="js-mono border-b border-line text-left text-[9px] tracking-[0.14em] text-faint">
                 <th scope="col" className="py-2.5 pr-3">
-                  Dawai
+                  {t("Medicine", "Dawai")}
                 </th>
                 <th scope="col" className="py-2.5 pr-3">
-                  Type
+                  {t("Type", "Type")}
                 </th>
                 <th scope="col" className="py-2.5 pr-3">
-                  Quantity
+                  {t("Quantity", "Quantity")}
                 </th>
                 <th scope="col" className="py-2.5 pr-3">
-                  Status
+                  {t("Status", "Status")}
                 </th>
                 <th scope="col" className="py-2.5" />
               </tr>
@@ -454,7 +472,7 @@ export default function MedicalClient({ user }) {
               {!filteredStock.length ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-sm text-muted-2">
-                    {isLoading ? "Load ho raha hai…" : "Koi dawai nahi mili."}
+                    {isLoading ? t("Loading…", "Load ho raha hai…") : t("No medicine found.", "Koi dawai nahi mili.")}
                   </td>
                 </tr>
               ) : null}

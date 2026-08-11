@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Clock3 } from "lucide-react";
 import HealthMap from "@/app/components/maps/health-map";
 import { useWorkspace } from "@/app/workspace/workspace-context";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { Panel } from "@/app/components/screen-ui";
 import { WorkspaceHeader } from "@/app/workspace/components/workspace-ui";
 import { RISK_COLOR } from "@/app/lib/chart-theme";
@@ -15,6 +16,7 @@ const LEGEND = [
 ];
 
 export function MapView() {
+  const t = useT();
   const {
     user,
     reports,
@@ -43,20 +45,23 @@ export function MapView() {
       {/* A coloured zone with no explanation is just a colour. This says, in named
           medicines, what actually made this area look the way it does. */}
       {velocity?.zone_reason ? (
-        <Panel tone={zoneTone} title="Ye area aisa kyun dikh raha hai">
+        <Panel tone={zoneTone} title={t("Why this area looks the way it does", "Ye area aisa kyun dikh raha hai")}>
           <p className="text-sm leading-[1.7] text-ink-2">{velocity.zone_reason}</p>
           {topRisk ? (
             <p className="mt-2.5 text-xs leading-[1.7] text-muted">{topRisk.explanation}</p>
           ) : null}
           <p className="mt-3 text-xs text-muted-2">
-            Poora chart{" "}
+            {t("The full chart is on", "Poora chart")}{" "}
             <Link
               href="/workspace/trends"
               className="font-semibold text-brand underline underline-offset-2"
             >
               Trends
             </Link>{" "}
-            par hai — kaunsi dawai kitni tez biki aur kis bimari ka ishara hai.
+            {t(
+              "— which medicine moved how fast, and what illness it points at.",
+              "par hai — kaunsi dawai kitni tez biki aur kis bimari ka ishara hai."
+            )}
           </p>
         </Panel>
       ) : null}
@@ -64,12 +69,15 @@ export function MapView() {
       <section data-reveal="" className="js-card overflow-hidden p-6 md:p-7">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-[15px] font-semibold text-ink">Live map</h2>
+            <h2 className="text-[15px] font-semibold text-ink">{t("Live map", "Live map")}</h2>
             <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-2">
               <Clock3 size={12} />
               {isLoadingReports
-                ? "Loading reports…"
-                : `${scopedReports.length} visible reports`}
+                ? t("Loading reports…", "Reports load ho rahi hain…")
+                : t(
+                    `${scopedReports.length} visible reports`,
+                    `${scopedReports.length} dikhne wali reports`
+                  )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

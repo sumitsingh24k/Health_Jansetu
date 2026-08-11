@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { parseCoordinate } from "@/app/lib/location-utils";
 import { canSeeSupplyInsights } from "@/app/lib/auth/role-home";
 import {
@@ -31,6 +32,7 @@ const WorkspaceContext = createContext(null);
 const LIVE_REFRESH_MS = 20000;
 
 export function WorkspaceProvider({ user, children }) {
+  const t = useT();
   const didBootstrapRef = useRef(false);
   /** True once a prediction has been shown, so later refreshes can run silently. */
   const hasPredictionRef = useRef(false);
@@ -783,13 +785,16 @@ export function WorkspaceProvider({ user, children }) {
         const disease = normalizeDiseaseInput(draft.disease) || "";
         if (!disease || !DISEASE_CODES.includes(disease)) {
           throw new Error(
+            t(
+            "Illness not recognised. Pick an option from the disease list (for example DENGUE).",
             "Bimari pehchani nahi gayi. Disease list se ek option chuniye (jaise DENGUE)."
+          )
           );
         }
 
         const newCases = Number.parseInt(draft.newCases, 10);
         if (!Number.isFinite(newCases) || newCases < 1) {
-          throw new Error("Kitne naye case mile? Kam se kam 1 hona chahiye.");
+          throw new Error(t("How many new cases? It must be at least 1.", "Kitne naye case mile? Kam se kam 1 hona chahiye."));
         }
 
         const criticalCases = Number.parseInt(draft.criticalCases, 10) || 0;
@@ -813,7 +818,10 @@ export function WorkspaceProvider({ user, children }) {
           longitude = String(coordinates?.longitude ?? user?.location?.longitude ?? "");
         }
         if (!normalizeText(latitude) || !normalizeText(longitude)) {
-          throw new Error("GPS nahi mila. 'Use Current GPS' dabaiye ya latitude/longitude bhariye.");
+          throw new Error(t(
+            "No GPS. Press 'Use Current GPS' or fill in latitude/longitude.",
+            "GPS nahi mila. 'Use Current GPS' dabaiye ya latitude/longitude bhariye."
+          ));
         }
 
         const response = await fetch("/api/health-data", {
@@ -837,7 +845,7 @@ export function WorkspaceProvider({ user, children }) {
 
         if (!response.ok) {
           throw new Error(
-            payload?.message || payload?.error || "Report submit nahi ho paayi. Dobara koshish kijiye."
+            payload?.message || payload?.error || t("The report could not be submitted. Please try again.", "Report submit nahi ho paayi. Dobara koshish kijiye.")
           );
         }
 
@@ -900,7 +908,7 @@ export function WorkspaceProvider({ user, children }) {
   const submitParsedReport = useCallback(
     async (parsed) => {
       if (!parsed || parsed.isEmpty) {
-        toast.error("Kuch samajh nahi aaya", {
+        toast.error(t("Nothing understood", "Kuch samajh nahi aaya"), {
           description: "Pehle bolkar ya likhkar report banaiye.",
         });
         return null;

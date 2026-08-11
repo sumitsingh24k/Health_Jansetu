@@ -6,6 +6,7 @@ import MultilingualVoiceInput from "@/app/components/voice/multilingual-voice-in
 import QuickCaseCapture from "@/app/components/voice/quick-case-capture";
 import { DISEASE_OPTIONS } from "@/app/lib/report-nlp";
 import { useWorkspace } from "@/app/workspace/workspace-context";
+import { useT } from "@/app/components/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip, EmptyState, Panel, StatCard } from "@/app/components/screen-ui";
@@ -99,6 +100,7 @@ function FocusPanel() {
 }
 
 export function ReportsView() {
+  const t = useT();
   const {
     user,
     canSubmitReports,
@@ -191,7 +193,10 @@ export function ReportsView() {
       {canSubmitReports ? (
         <Panel
           title={`${user.role} field report`}
-          description="Voice capture ne jo bhara hai use yahan check kar sakte hain, ya seedha form bhar sakte hain."
+          description={t(
+          "Check what voice capture filled in, or fill the form directly.",
+          "Voice capture ne jo bhara hai use yahan check kar sakte hain, ya seedha form bhar sakte hain."
+        )}
         >
           <form onSubmit={handleSubmitReport} className="grid gap-3.5 md:grid-cols-2">
             <label className="js-mono grid gap-1.5 text-[9px] tracking-[0.14em] text-muted-2">
@@ -204,7 +209,7 @@ export function ReportsView() {
                 className="h-10 rounded-xl border border-line bg-card px-3 font-sans text-sm tracking-normal text-ink normal-case outline-none transition-colors hover:border-brand-line focus:border-brand"
                 required
               >
-                <option value="">Bimari chuniye</option>
+                <option value="">{t("Pick the illness", "Bimari chuniye")}</option>
                 {DISEASE_OPTIONS.map((option) => (
                   <option key={option.code} value={option.code}>
                     {option.label} ({option.localLabel})
@@ -339,7 +344,10 @@ export function ReportsView() {
 
       <Panel
         title="Recent reports"
-        description="Har row batata hai kis source se aaya, kis area ka hai, aur kab."
+        description={t(
+          "Every row says which source it came from, which area, and when.",
+          "Har row batata hai kis source se aaya, kis area ka hai, aur kab."
+        )}
       >
         {scopedReports.length === 0 ? (
           <EmptyState>No reports available yet.</EmptyState>
