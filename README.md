@@ -12,18 +12,25 @@ JanSetu addresses these challenges by enabling real-time ASHA (Agniveer Health a
 - **Outbreak Prediction:** Use AI-driven models to forecast potential disease outbreaks based on current data trends.
 
 ## System Architecture
-A single Next.js application backed by MongoDB. ASHA field reports and medical-shop sales data
-land in one collection, and the correlation between them drives the map, the risk scoring, and
-the supply recommendations.
+A single Next.js application backed by MongoDB. Two independent witnesses feed it: what ASHA
+workers report from the field, and what medicine actually moved off shop shelves. The
+correlation between them drives the map, the risk scoring, and the supply recommendations —
+and it specifically catches under-reporting, where medicine is selling but nobody has filed
+a report.
 
-See [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) for the API map and data model.
+See [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) for the API map, data model, and the
+guards that keep the signal honest.
 
 ## Technology Stack
 - App: Next.js (App Router, route handlers)
 - Database: MongoDB (Mongoose)
-- Auth: NextAuth
-- Maps: Leaflet
-- Outbreak scoring: rule engine in `frontend/app/lib/outbreak-rules.js`
+- Auth: NextAuth, with one role/route table in `frontend/app/lib/auth/role-home.js`
+- Maps: Leaflet (Mapbox tiles when configured, OpenStreetMap otherwise)
+- AI: Gemini for chat, prescription reading and embeddings — optional; every safety rule
+  is rule-based and works without a key
+- Outbreak scoring: rule engine in `frontend/app/lib/outbreak-rules.js`, correlation and
+  validation in `frontend/app/lib/correlation/`
+- Language: English and Hinglish throughout, written side by side at the point of use
 
 ## Quick Start Guide
 1. Clone the repository and install dependencies:
