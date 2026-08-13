@@ -334,7 +334,303 @@ count every real under-reporting catch as a false positive.
 
 ---
 
-## 10. Outbreak alerts
+## 10. Every formula that decides an outbreak
+
+There is **no trained model anywhere in the surveillance path**. Not because a model was
+too hard, but because the two things a model needs are both absent:
+
+**There is no labelled data.** Nobody has a table saying "on 14 August, village Rampur
+was genuinely having a dengue outbreak." The two things this system *can* observe —
+ASHA reports and medicine movement — are the very things a label would have to be
+derived from, so training on them would be circular. There is nothing to fit against.
+
+**And a fitted model could not answer the question that matters.** The output of this
+system is a health worker being sent to a village for a day. The officer signing that
+off is entitled to ask "why this village?" — and "the network scored 0.83" is not an
+answer anyone can argue with, verify, or overrule. Every score below breaks into named
+parts precisely so it can be disputed.
+
+So everything is arithmetic, and every constant below is hand-set and visible. What
+follows is all of it.
+
+### Stage 1 — turning units into patients
+
+Raw unit counts are meaningless across medicines: 10 paracetamol tablets and 10 ACT kits
+are wildly different amounts of illness. Everything is first converted to a common unit.
+
+```
+patientEquivalents = unitsSold / UNITS_PER_PATIENT        // UNITS_PER_PATIENT = 10
+
+weightedDemand(disease) = Σ  patientEquivalents × signalWeight
+                        over every medicine carrying that disease in diseaseSignals[]
+```
+
+`signalWeight` is the catalog number from §6 — 0.15 for paracetamol→dengue, 0.9 for an
+ACT kit→malaria. This single multiplication is what stops a paracetamol season from
+reading as an outbreak.
+
+Two quantities are then derived from the same events and used differently:
+
+```
+specificity(disease) = max( signalWeight )   // the single strongest medicine seen
+```
+
+Demand is a *sum*, so ten broad-spectrum medicines each contributing 0.1 reach 1.0 and
+look identical to one specific medicine contributing 1.0. Keeping the peak weight
+separately is what lets the engine tell those two apart — see the survey-alert bar below.
+
+### Stage 2 — the area risk score
+
+`applyOutbreakRules()` in `app/lib/outbreak-rules.js`. Four additive terms, each capped:
+
+```
+caseScore      = min(36, cases × 0.42)
+trendScore     = max(0, growthPercent) × 0.45
+anomalyScore   = isAnomaly ? 18 : 0
+medicineSignal = Σ min(8, unitsSold / 30)
+
+riskScore = clamp(caseScore + trendScore + anomalyScore + medicineSignal, 0, 100)
+```
+
+Two of those terms are worth spelling out.
+
+**Growth is a moving-average comparison, not day-over-day**, because a single quiet
+Tuesday would otherwise read as an outbreak ending:
+
+```
+latestAvg   = mean(last 3 days)
+previousAvg = mean(3 days before those)
+growthPercent = (latestAvg − previousAvg) / previousAvg × 100
+```
+
+**The anomaly flag is each area's own baseline**, not a fixed threshold — this is the
+one genuinely statistical piece:
+
+```
+isAnomaly = cases > mean(history) + max(6, 1.5 × stdDev(history))
+```
+
+A village averaging 30 cases a day is not in trouble at 35. A village averaging 2 is in
+trouble at 10. A fixed cutoff cannot express that; 1.5 standard deviations can. The
+`max(6, …)` floor stops a village with a perfectly flat history (stdDev ≈ 0) from
+flagging an anomaly on a single extra case.
+
+**Bands, then a logistic curve for probability:**
+
+```
+riskScore ≥ 70  →  HIGH    / OUTBREAK LIKELY
+riskScore ≥ 40  →  MEDIUM  / POSSIBLE OUTBREAK
+otherwise       →  LOW     / NO OUTBREAK
+
+probability(next 3 days) = 1 / (1 + e^( −(riskScore − 45) / 12 ))   clamped to 0.03 … 0.98
+```
+
+That is the logistic (sigmoid) function — the same shape logistic regression produces,
+with one honest difference: **the coefficients were chosen, not learned.** The 45 centres
+the curve at the LOW/MEDIUM boundary and the 12 sets how sharply it turns, so scores near
+45 move the probability a lot and the difference between 90 and 95 barely registers. It
+is a readable restatement of the score, not an independent estimate.
+
+**Forecasts** are a straight extrapolation of the same two numbers:
+
+```
+predicted_next_week   = cases × (1 + max(0, growthPercent/100) × 0.7 + probability × 0.22)
+predicted_next_3_days = cases × (0.32 + probability × 0.35)
+```
+
+**Confidence is about evidence, not severity** — a terrifying score from one report is a
+low-confidence terrifying score:
+
+```
+confidence = 0.2
+           + min(0.25, reportCount × 0.03)
+           + min(0.20, dayCount × 0.025)
+           + (hasAshaSignal    ? 0.15 : 0)
+           + (hasMedicalSignal ? 0.15 : 0)
+           + (both             ? 0.10 : 0)      // the agreement bonus
+           clamped to 0.1 … 0.95
+```
+
+The `both` bonus is the whole thesis in one line: two independent sources are worth more
+than either source getting louder.
+
+### Stage 3 — correlating the two witnesses
+
+`correlateSignals()` in `app/lib/correlation/medicine-signal.js`. Per disease, per area.
+
+```
+hasAshaSignal     = ashaCases ≥ 1
+hasMedicineSignal = weightedDemand ≥ 1        // MIN_MEDICINE_DEMAND
+
+hasAsha && hasMedicine  →  CONFIRMED
+hasAsha && !hasMedicine →  ASHA_ONLY
+!hasAsha && hasMedicine →  MEDICINE_ONLY
+```
+
+`MEDICINE_ONLY` sends a real person to survey a real village, so it is held to a stricter
+bar than the other two — and the bar **slides with specificity**:
+
+```
+requiredDemand(peakWeight) =
+    peakWeight < 0.4  →  Infinity                       // never on broad-spectrum alone
+    otherwise         →  max(1, 2 × (0.4 / peakWeight))
+```
+
+So a papaya-leaf extract (weight 0.9) raises a survey alert at 0.89 patient-equivalents
+— floored at 1 — while a medicine at exactly 0.4 needs a full 2. This was not guesswork:
+the flat "2 patient-equivalents" bar it replaced was wrong in both directions, and the
+validation harness measured both failures. On borderline noise the old bar raised false
+alarms **53 times out of 60** (specificity 0.56) because ten broad-spectrum medicines at
+0.1 each summed past it; and it simultaneously **missed 23 genuine under-reported
+clusters** sitting at 1.8 patient-equivalents with a dengue-specific product moving.
+
+**Do the two sides agree on size, not just existence?**
+
+```
+ratio = medicineDemand / ashaCases          // MAGNITUDE_TOLERANCE = 2
+
+ratio > 2      →  MEDICINE_HEAVY
+ratio < 0.5    →  ASHA_HEAVY
+otherwise      →  ALIGNED
+```
+
+This exists because presence-agreement alone was the engine's weakest point: 74 reported
+cases backed by 1.9 patient-equivalents of medicine once scored exactly the same
+"confirmed, confidence 0.9" as 5 cases backed by 5. A 39× gap is not agreement — it means
+one side is badly wrong, and the admin needs to be told which.
+
+**Confidence is multiplicative**, so any one weak dimension pulls the whole thing down:
+
+```
+base   = sourceCount ≥ 3 ? 0.78 : sourceCount == 2 ? 0.60 : 0.35
+volume = 0.6 + 0.4 × min(1, (ashaCases + medicineDemand) / 20)      // FULL_EVIDENCE = 20
+agree  = ALIGNED 1.0 | MEDICINE_HEAVY 0.85 | ASHA_HEAVY 0.80 | SINGLE_SOURCE 1.0
+
+confidence = clamp(base × volume × agree, 0.1, 0.95)
+```
+
+Note `sourceCount` runs to **three**, not two: ASHA reports, JanSetu app pickups, and
+over-the-counter sales are counted separately. Pickups and counter sales are deliberately
+never merged — a pickup already decrements the shelf, so folding both into one number
+would count the same strip of tablets twice and let a single sale masquerade as two
+agreeing witnesses.
+
+**Spike detection** on the daily series, used to tell a rising signal from a merely large
+one:
+
+```
+recentAvg   = mean(last 3 days)
+baselineAvg = mean(all earlier days in the window)
+growthPercent = (recentAvg − baselineAvg) / baselineAvg × 100
+score = clamp(growthPercent / 300, 0, 1)        // +100% ≈ 0.5, +300% saturates
+```
+
+When `baselineAvg` is 0 the growth is mathematically infinite, which is a lie dressed as
+a number — it returns a flat 0.5 instead.
+
+**What correlation adds back to the risk score**, capped so it can never carry an area
+on its own:
+
+```
+for each row:
+    CONFIRMED      →  += min(10, medicineDemand × 1.5) × confidence
+    MEDICINE_ONLY  →  += min(5,  medicineDemand)       × confidence
+    ASHA_ONLY      →  += 0
+
+medicineRiskContribution = min(18, total)
+```
+
+### Stage 4 — velocity, and why it is not called a probability
+
+`diseaseRiskFromVelocity()` in `app/lib/correlation/medicine-velocity.js` compares two
+adjacent 7-day windows and scores the acceleration:
+
+| Component | Formula | Max |
+|-----------|---------|-----|
+| Volume | `patientEquivalents × 8` | 40 |
+| Growth vs. last week | `max(0, growthPercent) × 0.1` | 30 |
+| Specificity | `peakWeight ≥ 0.7 → 20`, `≥ 0.4 → 10`, else `0` | 20 |
+| ASHA agreement | `ashaCases > 0 → 10` | 10 |
+
+```
+score = min(100, demand + growth + specificity + ashaAgreement)
+band  = score ≥ 65 HIGH | ≥ 35 MEDIUM | LOW
+```
+
+Growth across several medicines is a **contribution-weighted** average, so a 400% jump in
+a bit-part medicine cannot drag the disease's score up:
+
+```
+growthPercent = Σ(changePercent × contribution) / Σ(contribution)
+```
+
+Two guards keep this honest. A medicine with fewer than 3 recent units is marked
+`isReadable: false` and excluded however dramatic its percentage. And a medicine that
+went from 0 to something has **no** percentage — reporting that as +∞ or as +100% are
+both lies — so it is flagged `isNew` with `changePercent: null` and judged on volume.
+
+Every score here is returned alongside its `breakdown`, which is the point. The admin
+reads *"40 for volume, 20 because a dengue-specific product is moving, 10 because the
+ASHA agrees = 70, HIGH"*, and can push back on any one term. It is deliberately **not**
+called a probability, because it is not one — no calibration was ever performed against
+outcomes, and naming it a probability would claim an accuracy nobody measured.
+
+### Stage 5 — checking rules when there is no ground truth
+
+`app/lib/correlation/validation.js`. Since there is nothing to score against, three
+different questions are asked and never conflated (see §9 for what each means):
+
+**Synthetic accuracy** builds labelled scenarios from a known truth and runs them through
+the real engine, giving a genuine confusion matrix — accuracy, precision, recall,
+specificity. It tests whether the *rules behave as specified*. It claims nothing about
+the real world. The run is seeded, so the same input always yields the same matrix and a
+regression is visible.
+
+**Agreement** between the two real sources, reported as Cohen's kappa — chance-corrected,
+because two sources that both fire often will agree a lot by luck alone:
+
+```
+Po = bothAgree / total                                  // observed agreement
+Pe = P(asha fires) × P(medicine fires)                  // agreement expected by chance
+κ  = (Po − Pe) / (1 − Pe)
+```
+
+This is labelled **agreement, not accuracy**, everywhere it appears. A disagreement is
+not a false positive — disagreement is the product this system exists to sell. Because
+rows only exist when at least one source fired, there is no "neither" cell, so the figure
+is reported as a lower bound rather than dressed up as a complete kappa.
+
+**Backtest** is the only true accuracy measure available: score today, then check what was
+actually reported two days later. Most deployments do not yet have the history, so it
+returns `INSUFFICIENT_DATA` with the exact shortfall rather than a number computed from
+four data points.
+
+The one thing never done is scoring the engine against ASHA reports as though they were
+truth. Its headline feature is finding the cases ASHAs *missed*, so treating their reports
+as ground truth would count every correct under-reporting catch as a false positive — and
+would reward an engine that never looks.
+
+### Where each constant lives
+
+| Constant | Value | File |
+|----------|-------|------|
+| `UNITS_PER_PATIENT` | 10 | `medicine-signal.js`, `medicine-velocity.js` |
+| `MIN_MEDICINE_DEMAND` | 1 | `medicine-signal.js` |
+| `FULL_EVIDENCE` | 20 | `medicine-signal.js` |
+| `MAGNITUDE_TOLERANCE` | 2 | `medicine-signal.js` |
+| `MEDICINE_ONLY_MIN_DEMAND` / `_MIN_WEIGHT` / `_FLOOR_DEMAND` | 2 / 0.4 / 1 | `medicine-signal.js` |
+| `HIGHLY_SPECIFIC` / `BROAD_SPECTRUM` | 0.7 / 0.4 | `medicine-velocity.js` |
+| `MIN_RECENT_UNITS` | 3 | `medicine-velocity.js` |
+| `POINTS`, `BAND_HIGH`, `BAND_MEDIUM` | see table above, 65, 35 | `medicine-velocity.js` |
+| Risk weights, bands, sigmoid centre/slope | 0.42 / 0.45 / 18, 70 & 40, 45 & 12 | `outbreak-rules.js` |
+| Medicine risk cap | 18 | `medicine-signal.js` |
+
+A reviewer disagreeing with this system disagrees with a number in that table, and can
+change it. That property is the reason none of this is a neural network.
+
+---
+
+## 11. Outbreak alerts
 
 When `/api/health-data` scores an area past the alert threshold it dispatches on up to
 four channels — Resend email, SMTP email, Twilio SMS, and a signed webhook. Each is
@@ -348,7 +644,7 @@ a serverless cold start. Moving them to MongoDB is the obvious next step.
 
 ---
 
-## 11. Language
+## 12. Language
 
 Every user-facing string travels as a pair, written together at the point of use:
 
@@ -368,7 +664,7 @@ the `jansetu_locale` cookie so server-rendered strings match the client.
 
 ---
 
-## 12. Gemini
+## 13. Gemini
 
 Set `GEMINI_API_KEY` in `frontend/.env`, then re-run `npm run seed:medicines` so the
 catalog gets embeddings.
@@ -395,7 +691,7 @@ sites do not change.
 
 ---
 
-## 13. Environment
+## 14. Environment
 
 **Required**
 
@@ -432,7 +728,7 @@ different one from the list rather than waiting for a reset.
 
 ---
 
-## 14. Running it
+## 15. Running it
 
 ```bash
 cd frontend
