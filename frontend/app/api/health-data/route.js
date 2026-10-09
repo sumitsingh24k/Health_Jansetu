@@ -51,10 +51,11 @@ const ALLOWED_DISEASES = new Set([
   "MEASLES", "CHICKENPOX", "TUBERCULOSIS", "HEPATITIS", "PNEUMONIA",
   "VIRAL_FEVER", "GENERAL_FEVER", "UNKNOWN", "OTHER"
 ]);
-
+// Check karta hai: User ki location mein district aur village dono hain?
 function hasLocation(location) {
   return Boolean(location?.district && location?.village);
 }
+
 
 // Validate disease is in allowed list
 function validateDisease(disease) {
@@ -178,13 +179,14 @@ function filterEntitiesByRole(entities, role, userLocation) {
 
   return filtered;
 }
-
+// Filter reports by location (district + village)
 function locationFilter(location) {
   return {
     "location.district": location.district,
     "location.village": location.village,
   };
 }
+// ============ PHASE 3: DATA NORMALIZATION ============
 
 function normalizeCount(value, fallback = 0) {
   const number = value === undefined ? fallback : Number(value);
@@ -193,17 +195,19 @@ function normalizeCount(value, fallback = 0) {
   }
   return number;
 }
-
+//Decimal round karta hai.
 function roundTo(value, digits = 2) {
   if (!Number.isFinite(value)) return 0;
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
 }
 
+//Value ko range ke andar rakhta hai. 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+//ring ko:trim lowercase karta hai.
 function normalizeText(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
