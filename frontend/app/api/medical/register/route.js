@@ -43,12 +43,12 @@ export async function POST(request) {
       password: hashedPassword,
       role: "MEDICAL",
       location: normalizedLocation,
-      status: "PENDING",
+      status: "APPROVED",
     });
 
     return Response.json(
       {
-        message: "Medical registration submitted for approval",
+        message: "Account ban gaya. Ab apne email aur password se login kijiye.",
         user: {
           id: user._id,
           name: user.name,

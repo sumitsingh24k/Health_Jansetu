@@ -70,8 +70,8 @@ export default function LoginForm({ callbackUrl = "" }) {
         <h1 className="js-display mt-4 text-4xl text-white">{t("Sign in.", "Sign in.")}</h1>
         <p className="mt-3 text-[13px] leading-relaxed text-[rgba(238,245,240,0.6)]">
           {t(
-            "Use your approved account credentials. One sign-in page for everyone.",
-            "Use your approved account credentials. Ek hi login page sabke liye."
+            "Use your account credentials. One sign-in page for everyone.",
+            "Apne account se login kijiye. Sabke liye ek hi sign-in page hai."
           )}
         </p>
       </div>

@@ -58,6 +58,45 @@ const RISK_LABEL = {
   LOW: { en: "Low risk", hi: "Kam khatra" },
 };
 
+const SAMPLE_CASE_COUNTS = [3, 2, 4, 3, 5, 2, 4, 3, 5, 2, 4, 3, 4, 4];
+
+function makeIllustrativeDashboard(actualTrend) {
+  const dailyTrend = SAMPLE_CASE_COUNTS.map((cases, index) => {
+    return {
+      date: actualTrend?.[index]?.date || "",
+      cases,
+      critical: index === 4 || index === 8 ? 1 : 0,
+    };
+  });
+
+  const riskZones = [
+    { village: "Sample area 1", district: "Sample district", cases: 12, criticalCases: 1, reportCount: 4, latitude: 25.3176, longitude: 82.9739, topDisease: "DENGUE", riskLevel: "MEDIUM" },
+    { village: "Sample area 2", district: "Sample district", cases: 10, criticalCases: 0, reportCount: 3, latitude: 28.6139, longitude: 77.209, topDisease: "MALARIA", riskLevel: "MEDIUM" },
+    { village: "Sample area 3", district: "Sample district", cases: 15, criticalCases: 1, reportCount: 5, latitude: 19.076, longitude: 72.8777, topDisease: "DENGUE", riskLevel: "MEDIUM" },
+    { village: "Sample area 4", district: "Sample district", cases: 11, criticalCases: 0, reportCount: 4, latitude: 12.9716, longitude: 77.5946, topDisease: "DIARRHEA", riskLevel: "MEDIUM" },
+  ];
+
+  return {
+    scope: "Illustrative sample",
+    summary: {
+      totalCases: 48,
+      criticalCases: 2,
+      activeAreas: 4,
+      highRiskAreas: 0,
+      medicineUnitsDispensed: 12,
+    },
+    dailyTrend,
+    diseaseDistribution: [
+      { disease: "DENGUE", cases: 19 },
+      { disease: "MALARIA", cases: 12 },
+      { disease: "DIARRHEA", cases: 10 },
+      { disease: "FEVER", cases: 7 },
+    ],
+    medicineDemand: [{ brand: "Sample medicine", units: 12 }],
+    riskZones,
+  };
+}
+
 function StatTile({ label, value, hint, tone = "ink" }) {
   const valueColor = {
     ink: "text-ink",
@@ -162,22 +201,31 @@ export default function PublicDashboard() {
     };
   }, [t]);
 
+  const actualCases = data?.summary?.totalCases || 0;
+  const actualAreas = data?.summary?.activeAreas || 0;
+  const reportedDays = (data?.dailyTrend || []).filter((entry) => entry.cases > 0).length;
+  const isIllustrativeData = actualCases < 15 || reportedDays < 3;
+  const dashboardData = useMemo(
+    () => (isIllustrativeData ? makeIllustrativeDashboard(data?.dailyTrend) : data),
+    [data, isIllustrativeData]
+  );
+
   const trendData = useMemo(
     () =>
-      (data?.dailyTrend || []).map((entry) => ({
+      (dashboardData?.dailyTrend || []).map((entry) => ({
         ...entry,
         label: shortDate(entry.date),
       })),
-    [data]
+    [dashboardData]
   );
 
   const diseaseData = useMemo(
     () =>
-      (data?.diseaseDistribution || []).map((entry) => ({
+      (dashboardData?.diseaseDistribution || []).map((entry) => ({
         ...entry,
         label: titleCase(entry.disease),
       })),
-    [data]
+    [dashboardData]
   );
 
   if (isLoading) {
@@ -199,13 +247,25 @@ export default function PublicDashboard() {
     );
   }
 
-  const summary = data?.summary || {};
-  const hasCases = (data?.dailyTrend || []).some((entry) => entry.cases > 0);
+  const summary = dashboardData?.summary || {};
+  const hasCases = (dashboardData?.dailyTrend || []).some((entry) => entry.cases > 0);
 
   return (
     <div className="space-y-5">
+      {isIllustrativeData ? (
+        <div
+          role="status"
+          className="rounded-[14px] border border-warn-line bg-warn-bg px-4 py-3 text-xs leading-relaxed text-warn-ink"
+        >
+          {t(
+            `Illustrative sample data is shown below because live reporting is sparse. The real 14-day total is ${actualCases} cases across ${actualAreas} areas. Sample values are not real reports and do not trigger alerts.`,
+            `Asli reports kam hone ki wajah se neeche sirf samajhne ke liye sample data dikh raha hai. Pichhle 14 din ka asli total ${actualCases} case aur ${actualAreas} ilaake hain. Sample values asli reports nahi hain aur alert nahi banate.`
+          )}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label={t("New cases · 14 days", "Naye case · 14 din")} value={summary.totalCases ?? 0} hint={data?.scope} />
+        <StatTile label={t("New cases · 14 days", "Naye case · 14 din")} value={summary.totalCases ?? 0} hint={dashboardData?.scope} />
         <StatTile
           label={t("Serious cases", "Serious case")}
           value={summary.criticalCases ?? 0}
@@ -339,13 +399,13 @@ export default function PublicDashboard() {
             "Ye numbers tabhi badhte hain jab medical shop pickup confirm karti hai — sirf order karne se nahi."
           )}
         >
-          {data?.medicineDemand?.length ? (
+          {dashboardData?.medicineDemand?.length ? (
             <ResponsiveContainer
               width="100%"
-              height={Math.max(180, data.medicineDemand.length * 34)}
+              height={Math.max(180, dashboardData.medicineDemand.length * 34)}
             >
               <BarChart
-                data={data.medicineDemand}
+                data={dashboardData.medicineDemand}
                 layout="vertical"
                 margin={{ top: 4, right: 34, bottom: 4, left: 4 }}
               >
@@ -405,7 +465,7 @@ export default function PublicDashboard() {
         </div>
 
         <PublicRiskMap
-          zones={data?.riskZones || []}
+          zones={dashboardData?.riskZones || []}
           focus={areaFocus}
           verdictByZone={verdictByZone}
         />
@@ -458,7 +518,7 @@ export default function PublicDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.riskZones || []).map((zone) => (
+                {(dashboardData?.riskZones || []).map((zone) => (
                   <tr
                     key={`${zone.district}-${zone.village}`}
                     className="border-b border-line-soft transition-colors hover:bg-card-hover"
@@ -479,7 +539,7 @@ export default function PublicDashboard() {
                     </td>
                   </tr>
                 ))}
-                {!(data?.riskZones || []).length ? (
+                {!(dashboardData?.riskZones || []).length ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-muted-2">
                       Abhi koi ilaaka report nahi kar raha.

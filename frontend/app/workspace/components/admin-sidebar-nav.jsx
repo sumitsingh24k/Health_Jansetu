@@ -4,18 +4,15 @@ import Link from "next/link";
 import { useWorkspace } from "@/app/workspace/workspace-context";
 
 const LINKS = [
-  { href: "/workspace/team#create-asha", label: "Create ASHA" },
   { href: "/workspace/trends", label: "Filters" },
   { href: "/workspace/team#memory", label: "ASHA memory" },
-  { href: "/workspace/reports#pending-approvals", label: "Approvals" },
   { href: "/workspace/map", label: "Map" },
 ];
 
 export function AdminSidebarNav() {
-  const { pendingUsers, summary, aiInsights } = useWorkspace();
+  const { summary, aiInsights } = useWorkspace();
 
   const counters = [
-    ["Pending approvals", pendingUsers.length, pendingUsers.length ? "text-warn-ink" : "text-ink"],
     ["Critical alerts", summary.criticalAlerts, summary.criticalAlerts ? "text-danger" : "text-ink"],
     ["Data mismatches", aiInsights.mismatchReports.length, "text-ink"],
     ["Price anomaly flags", aiInsights.priceAnomalies.length, "text-ink"],

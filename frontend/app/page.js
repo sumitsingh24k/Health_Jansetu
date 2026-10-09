@@ -25,7 +25,7 @@ const ROLE_REGISTRATIONS = [
       hi: "Bol kar report darj kijiye — bimari aur case count apne aap bhar jaate hain, map turant update hota hai.",
     },
     href: "/register/asha",
-    note: { en: "Sign-in opens after admin approval", hi: "Admin approval ke baad login hoga" },
+    note: { en: "Sign in right after registering", hi: "Register karte hi login kijiye" },
     cta: { en: "Register", hi: "Register kijiye" },
   },
   {
@@ -37,7 +37,7 @@ const ROLE_REGISTRATIONS = [
       hi: "Apna stock manage kijiye, customer ke pickup code confirm kijiye, aur dawai ki demand ka chart dekhiye.",
     },
     href: "/register/medical",
-    note: { en: "Sign-in opens after admin approval", hi: "Admin approval ke baad login hoga" },
+    note: { en: "Sign in right after registering", hi: "Register karte hi login kijiye" },
     cta: { en: "Register", hi: "Register kijiye" },
   },
   {

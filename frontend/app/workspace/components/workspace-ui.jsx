@@ -21,7 +21,7 @@ const ROLE_KICKER = {
 };
 
 const ROLE_SUBTITLE = {
-  ADMIN: "Create ASHA workers, approve registrations, and analyse any location's outbreak picture.",
+  ADMIN: "Review case trends, ASHA coverage, and any location's outbreak picture.",
   ASHA: "Submit ground reports for your assigned area with disease and GPS details.",
   MEDICAL: "Watch what is moving in your area — and what the two sides of the data say about it.",
 };

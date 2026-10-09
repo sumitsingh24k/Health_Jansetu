@@ -37,9 +37,7 @@ export function WorkspaceProvider({ user, children }) {
   /** True once a prediction has been shown, so later refreshes can run silently. */
   const hasPredictionRef = useRef(false);
   const [reports, setReports] = useState([]);
-  const [pendingUsers, setPendingUsers] = useState([]);
   const [isLoadingReports, setIsLoadingReports] = useState(true);
-  const [isLoadingPending, setIsLoadingPending] = useState(false);
   const [filters, setFilters] = useState({
     district: "",
     village: "",
@@ -62,18 +60,7 @@ export function WorkspaceProvider({ user, children }) {
   const [mapEntities, setMapEntities] = useState(() => ({ ...EMPTY_MAP_ENTITIES }));
   const [dailyTrend, setDailyTrend] = useState([]);
   const [diseaseDistribution, setDiseaseDistribution] = useState([]);
-  const [isCreatingAsha, setIsCreatingAsha] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [approvingUserId, setApprovingUserId] = useState("");
-  const [createAshaForm, setCreateAshaForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    village: "",
-    district: "",
-    latitude: "",
-    longitude: "",
-  });
   const [reportForm, setReportForm] = useState({
     disease: "",
     householdsVisited: "",
@@ -113,11 +100,10 @@ export function WorkspaceProvider({ user, children }) {
   const [predictionError, setPredictionError] = useState("");
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
 
-  const canCreateAsha = user.role === "ADMIN";
+  const canViewAshaDirectory = user.role === "ADMIN";
   // ASHA only. A field report is a household survey — a shop has no households to
   // report on, and its real contribution (what left the shelf) is recorded automatically.
   const canSubmitReports = user.role === "ASHA";
-  const canSeePendingApprovals = user.role === "ADMIN";
   const canSeeLocationInsight = canSeeSupplyInsights(user.role);
   const showBottomDock = true;
 
@@ -196,25 +182,6 @@ export function WorkspaceProvider({ user, children }) {
     [filters]
   );
 
-  const loadPendingUsers = useCallback(async () => {
-    if (!canSeePendingApprovals) return;
-    setIsLoadingPending(true);
-
-    try {
-      const res = await fetch("/api/admin/pending-users", { credentials: "same-origin" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.message || body.error || "Failed to load pending users");
-      }
-      setPendingUsers(Array.isArray(body.data) ? body.data : []);
-    } catch (error) {
-      toast.error("Pending users failed", { description: error.message || "Please refresh." });
-      setPendingUsers([]);
-    } finally {
-      setIsLoadingPending(false);
-    }
-  }, [canSeePendingApprovals]);
-
   const loadAshaDirectory = useCallback(
     async (
       activeLookup = {
@@ -225,7 +192,7 @@ export function WorkspaceProvider({ user, children }) {
         radiusKm: "12",
       }
     ) => {
-      if (!canCreateAsha) return;
+      if (!canViewAshaDirectory) return;
       setIsLoadingAshaDirectory(true);
 
       try {
@@ -248,7 +215,7 @@ export function WorkspaceProvider({ user, children }) {
         setIsLoadingAshaDirectory(false);
       }
     },
-    [canCreateAsha]
+    [canViewAshaDirectory]
   );
 
   useEffect(() => {
@@ -265,14 +232,10 @@ export function WorkspaceProvider({ user, children }) {
       endDate: "",
     });
 
-    if (canSeePendingApprovals) {
-      loadPendingUsers();
-    }
-
-    if (canCreateAsha) {
+    if (canViewAshaDirectory) {
       loadAshaDirectory();
     }
-  }, [canCreateAsha, canSeePendingApprovals, loadAshaDirectory, loadPendingUsers, loadReports]);
+  }, [canViewAshaDirectory, loadAshaDirectory, loadReports]);
 
   /**
    * Keeps the map live: a report filed by one ASHA shows up on every other open
@@ -542,118 +505,6 @@ export function WorkspaceProvider({ user, children }) {
       toast.info("ASHA ID", { description: workerId });
     }
   }, []);
-
-  const applyCreateLocationToLookup = useCallback(() => {
-    const nextLookup = {
-      district: createAshaForm.district || "",
-      village: createAshaForm.village || "",
-      latitude: createAshaForm.latitude || "",
-      longitude: createAshaForm.longitude || "",
-      radiusKm: ashaLookup.radiusKm || "12",
-    };
-
-    setAshaLookup(nextLookup);
-    return nextLookup;
-  }, [createAshaForm.district, createAshaForm.latitude, createAshaForm.longitude, createAshaForm.village, ashaLookup.radiusKm]);
-
-  const handleCreateAsha = useCallback(
-    async (event) => {
-      event.preventDefault();
-      setIsCreatingAsha(true);
-
-      try {
-        const nextLookup = {
-          district: createAshaForm.district || "",
-          village: createAshaForm.village || "",
-          latitude: createAshaForm.latitude || "",
-          longitude: createAshaForm.longitude || "",
-          radiusKm: ashaLookup.radiusKm || "12",
-        };
-
-        const response = await fetch("/api/admin/create-asha", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: createAshaForm.name,
-            email: createAshaForm.email,
-            password: createAshaForm.password,
-            location: {
-              village: createAshaForm.village,
-              district: createAshaForm.district,
-              latitude: createAshaForm.latitude,
-              longitude: createAshaForm.longitude,
-            },
-          }),
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          toast.error("Creation failed", {
-            description:
-              payload?.message || payload?.error || "Please review form values.",
-          });
-          return;
-        }
-
-        toast.success("ASHA worker created", {
-          description: payload?.user?.workerId
-            ? `${payload.user.workerId} created successfully.`
-            : payload?.message || "Worker created successfully.",
-        });
-        setAshaLookup(nextLookup);
-        loadAshaDirectory(nextLookup);
-        setCreateAshaForm({
-          name: "",
-          email: "",
-          password: "",
-          village: "",
-          district: "",
-          latitude: "",
-          longitude: "",
-        });
-      } catch (error) {
-        toast.error("Creation failed", {
-          description: error.message || "Please review form values.",
-        });
-      } finally {
-        setIsCreatingAsha(false);
-      }
-    },
-    [createAshaForm, ashaLookup.radiusKm, loadAshaDirectory]
-  );
-
-  const handleApproveUser = useCallback(
-    async (userId, role) => {
-      setApprovingUserId(userId);
-
-      try {
-        const response = await fetch(`/api/admin/approve/${userId}`, {
-          method: "POST",
-          credentials: "same-origin",
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          toast.error("Approval failed", {
-            description: payload?.message || payload?.error || "Please retry.",
-          });
-          return;
-        }
-
-        toast.success("User approved", {
-          description: payload?.message || `${role} approved successfully.`,
-        });
-        loadPendingUsers();
-      } catch (error) {
-        toast.error("Approval failed", { description: error.message || "Please retry." });
-      } finally {
-        setApprovingUserId("");
-      }
-    },
-    [loadPendingUsers]
-  );
 
   /**
    * Reads GPS and writes it into the report form.
@@ -967,9 +818,7 @@ export function WorkspaceProvider({ user, children }) {
       user,
       reports,
       setReports,
-      pendingUsers,
       isLoadingReports,
-      isLoadingPending,
       filters,
       setFilters,
       selectedRegion,
@@ -982,11 +831,7 @@ export function WorkspaceProvider({ user, children }) {
       mapEntities,
       dailyTrend,
       diseaseDistribution,
-      isCreatingAsha,
       isSubmittingReport,
-      approvingUserId,
-      createAshaForm,
-      setCreateAshaForm,
       reportForm,
       setReportForm,
       reportFocus,
@@ -1000,14 +845,12 @@ export function WorkspaceProvider({ user, children }) {
       prediction,
       predictionError,
       isLoadingPrediction,
-      canCreateAsha,
+      canViewAshaDirectory,
       canSubmitReports,
-      canSeePendingApprovals,
       canSeeLocationInsight,
       showBottomDock,
       canSeeAiPanel: Boolean(selectedRegion?.district),
       loadReports,
-      loadPendingUsers,
       loadAshaDirectory,
       scopedReports,
       summary,
@@ -1018,9 +861,6 @@ export function WorkspaceProvider({ user, children }) {
       selectedAreaPriceAnomalies,
       nearbyZoneRisk,
       handleCopyAshaId,
-      applyCreateLocationToLookup,
-      handleCreateAsha,
-      handleApproveUser,
       handleSubmitReport,
       submitReport,
       submitParsedReport,
@@ -1032,9 +872,7 @@ export function WorkspaceProvider({ user, children }) {
     [
       user,
       reports,
-      pendingUsers,
       isLoadingReports,
-      isLoadingPending,
       filters,
       selectedRegion,
       dashboardSummary,
@@ -1045,10 +883,7 @@ export function WorkspaceProvider({ user, children }) {
       mapEntities,
       dailyTrend,
       diseaseDistribution,
-      isCreatingAsha,
       isSubmittingReport,
-      approvingUserId,
-      createAshaForm,
       reportForm,
       reportFocus,
       focusedReports,
@@ -1060,13 +895,11 @@ export function WorkspaceProvider({ user, children }) {
       prediction,
       predictionError,
       isLoadingPrediction,
-      canCreateAsha,
+      canViewAshaDirectory,
       canSubmitReports,
-      canSeePendingApprovals,
       canSeeLocationInsight,
       showBottomDock,
       loadReports,
-      loadPendingUsers,
       loadAshaDirectory,
       scopedReports,
       summary,
@@ -1077,9 +910,6 @@ export function WorkspaceProvider({ user, children }) {
       selectedAreaPriceAnomalies,
       nearbyZoneRisk,
       handleCopyAshaId,
-      applyCreateLocationToLookup,
-      handleCreateAsha,
-      handleApproveUser,
       handleSubmitReport,
       submitReport,
       submitParsedReport,

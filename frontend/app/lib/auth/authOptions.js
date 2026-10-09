@@ -117,12 +117,6 @@ export const authOptions = {
           throw new Error("Invalid credentials");
         }
 
-        // ASHA reports paint the outbreak map and medical stock feeds the correlation,
-        // so both wait for admin approval. Ordinary users sign in immediately.
-        if ((user.role === "MEDICAL" || user.role === "ASHA") && user.status !== "APPROVED") {
-          throw new Error("Account is pending admin approval");
-        }
-
         return {
           id: user._id.toString(),
           name: user.name,

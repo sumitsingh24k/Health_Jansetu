@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { CheckCircle2, Crosshair, MapPin, Target, X } from "lucide-react";
+import { Crosshair, MapPin, Target, X } from "lucide-react";
 import MultilingualVoiceInput from "@/app/components/voice/multilingual-voice-input";
 import QuickCaseCapture from "@/app/components/voice/quick-case-capture";
 import { DISEASE_OPTIONS } from "@/app/lib/report-nlp";
@@ -9,7 +9,7 @@ import { useWorkspace } from "@/app/workspace/workspace-context";
 import { useT } from "@/app/components/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Chip, EmptyState, Panel, StatCard } from "@/app/components/screen-ui";
+import { EmptyState, Panel, StatCard } from "@/app/components/screen-ui";
 import { WorkspaceHeader } from "@/app/workspace/components/workspace-ui";
 
 function toDateInputValue(value) {
@@ -104,18 +104,12 @@ export function ReportsView() {
   const {
     user,
     canSubmitReports,
-    canSeePendingApprovals,
     scopedReports,
     reportForm,
     setReportForm,
     handleSubmitReport,
     isSubmittingReport,
     captureCurrentLocation,
-    pendingUsers,
-    isLoadingPending,
-    loadPendingUsers,
-    handleApproveUser,
-    approvingUserId,
   } = useWorkspace();
 
   // Speech results arrive as growing interim strings, so each utterance replaces
@@ -133,62 +127,6 @@ export function ReportsView() {
       {canSubmitReports ? <QuickCaseCapture /> : null}
 
       <FocusPanel />
-
-      {canSeePendingApprovals ? (
-        <Panel
-          id="pending-approvals"
-          title="Pending hospital / medical approvals"
-          description="The gate exists because without it, anyone could register as a shop and inject invented stock straight into the outbreak signal."
-          actions={
-            <>
-              {pendingUsers.length ? <Chip tone="warn">{pendingUsers.length} waiting</Chip> : null}
-              <Button type="button" variant="outline" size="sm" onClick={loadPendingUsers}>
-                Refresh
-              </Button>
-            </>
-          }
-        >
-          {isLoadingPending ? <EmptyState>Loading pending users…</EmptyState> : null}
-
-          {!isLoadingPending && pendingUsers.length === 0 ? (
-            <EmptyState>No pending users right now.</EmptyState>
-          ) : null}
-
-          <div className="space-y-2.5">
-            {pendingUsers.map((pending) => (
-              <div
-                key={pending.id}
-                className="flex flex-col gap-3 rounded-[14px] border border-line bg-brand-tint-2 p-4 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="js-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-tint text-sm font-semibold text-brand">
-                    {(pending.name || "?").slice(0, 1).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-ink">{pending.name}</p>
-                    <p className="js-mono mt-1 text-[8.5px] tracking-[0.12em] text-muted-2">
-                      {pending.role} · {pending.email}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-muted-2">
-                      {pending.location?.village}, {pending.location?.district}
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => handleApproveUser(pending.id, pending.role)}
-                  disabled={approvingUserId === pending.id}
-                >
-                  <CheckCircle2 size={14} />
-                  {approvingUserId === pending.id ? "Approving…" : "Approve"}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ) : null}
 
       {canSubmitReports ? (
         <Panel

@@ -1,7 +1,6 @@
 "use client";
 
-import { Copy, LocateFixed, MapPin, ShieldCheck, Users } from "lucide-react";
-import AreaSearchFields from "@/app/components/location/area-search-fields";
+import { Copy, LocateFixed, MapPin, Users } from "lucide-react";
 import { useWorkspace } from "@/app/workspace/workspace-context";
 import {
   formatDistance,
@@ -20,17 +19,12 @@ export function TeamView() {
     filters,
     setFilters,
     loadReports,
-    createAshaForm,
-    setCreateAshaForm,
-    handleCreateAsha,
-    isCreatingAsha,
     ashaLookup,
     setAshaLookup,
     ashaDirectory,
     ashaSpotlight,
     isLoadingAshaDirectory,
     loadAshaDirectory,
-    applyCreateLocationToLookup,
     handleCopyAshaId,
   } = useWorkspace();
 
@@ -38,126 +32,58 @@ export function TeamView() {
     <>
       <WorkspaceHeader
         user={user}
-        title="ASHA &amp; approvals."
-        subtitle="Create workers, filter the board, and remember who covers which village."
+        title="ASHA coverage."
+        subtitle="Filter the board and find workers by the villages they cover."
       />
 
       <section className="grid gap-6 xl:grid-cols-[250px_minmax(0,1fr)]">
         <AdminSidebarNav />
 
         <div className="space-y-6">
-          <section id="create-asha" className="grid gap-5 lg:grid-cols-2">
-            <form
-              onSubmit={handleCreateAsha}
-              data-reveal=""
-              className="js-card space-y-4 p-6 md:p-7"
-            >
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck size={17} className="text-brand" />
-                <h2 className="text-[15px] font-semibold text-ink">Create ASHA worker</h2>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <Input
-                  placeholder="Full Name"
-                  value={createAshaForm.name}
-                  onChange={(event) =>
-                    setCreateAshaForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                 
-                  required
-                />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={createAshaForm.email}
-                  onChange={(event) =>
-                    setCreateAshaForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                 
-                  required
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={createAshaForm.password}
-                  onChange={(event) =>
-                    setCreateAshaForm((current) => ({ ...current, password: event.target.value }))
-                  }
-                 
-                  required
-                />
-
-                <AreaSearchFields
-                  value={{
-                    village: createAshaForm.village,
-                    district: createAshaForm.district,
-                    latitude: createAshaForm.latitude,
-                    longitude: createAshaForm.longitude,
-                  }}
-                  onChange={(patch) =>
-                    setCreateAshaForm((current) => ({
-                      ...current,
-                      ...patch,
-                    }))
-                  }
-                  className="md:col-span-2"
-                />
-              </div>
-
-              <Button type="submit" disabled={isCreatingAsha} className="w-full">
-                {isCreatingAsha ? "Creating…" : "Create ASHA worker"}
-              </Button>
-            </form>
-
-            <section data-reveal="" className="js-card space-y-3.5 p-6 md:p-7">
-              <h2 className="text-[15px] font-semibold text-ink">Admin map filters</h2>
-              <div className="grid gap-3 md:grid-cols-4">
-                <Input
-                  placeholder="District"
-                  value={filters.district}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, district: event.target.value }))
-                  }
-                 
-                />
-                <Input
-                  placeholder="Village"
-                  value={filters.village}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, village: event.target.value }))
-                  }
-                 
-                />
-                <Input
-                  placeholder="Disease"
-                  value={filters.disease}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, disease: event.target.value }))
-                  }
-                 
-                />
-                <select
-                  value={filters.reporterRole}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, reporterRole: event.target.value }))
-                  }
-                  aria-label="Source"
-                  className="h-10 rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none transition-colors hover:border-brand-line focus:border-brand"
-                >
-                  <option value="">All sources</option>
-                  <option value="ASHA">ASHA</option>
-                  <option value="MEDICAL">MEDICAL</option>
-                </select>
-              </div>
-              <Button type="button" onClick={() => loadReports(filters)}>
-                Apply filters
-              </Button>
-              <p className="text-xs leading-relaxed text-muted-2">
-                Admin can inspect outbreak markers for any location using district, village, and
-                disease filters.
-              </p>
-            </section>
+          <section data-reveal="" className="js-card space-y-3.5 p-6 md:p-7">
+            <h2 className="text-[15px] font-semibold text-ink">Admin map filters</h2>
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input
+                placeholder="District"
+                value={filters.district}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, district: event.target.value }))
+                }
+              />
+              <Input
+                placeholder="Village"
+                value={filters.village}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, village: event.target.value }))
+                }
+              />
+              <Input
+                placeholder="Disease"
+                value={filters.disease}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, disease: event.target.value }))
+                }
+              />
+              <select
+                value={filters.reporterRole}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, reporterRole: event.target.value }))
+                }
+                aria-label="Source"
+                className="h-10 rounded-xl border border-line bg-card px-3 text-sm text-ink outline-none transition-colors hover:border-brand-line focus:border-brand"
+              >
+                <option value="">All sources</option>
+                <option value="ASHA">ASHA</option>
+                <option value="MEDICAL">MEDICAL</option>
+              </select>
+            </div>
+            <Button type="button" onClick={() => loadReports(filters)}>
+              Apply filters
+            </Button>
+            <p className="text-xs leading-relaxed text-muted-2">
+              Admin can inspect outbreak markers for any location using district, village, and
+              disease filters.
+            </p>
           </section>
 
           <section
@@ -214,12 +140,9 @@ export function TeamView() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const nextLookup = applyCreateLocationToLookup();
-                  loadAshaDirectory(nextLookup);
-                }}
+                onClick={() => loadAshaDirectory(ashaLookup)}
               >
-                Use Create Form Location
+                Search this location
               </Button>
             </div>
 

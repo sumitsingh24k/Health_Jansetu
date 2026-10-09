@@ -3,9 +3,8 @@ import User from "@/app/lib/schema/userschema";
 /**
  * Allocates the next ASHA_### id by reading the highest existing sequence.
  *
- * Shared by admin creation and self-registration. The unique index on `workerId` is
- * the real guard against collisions — callers retry on a duplicate-key error rather
- * than relying on this read being race-free.
+ * The unique index on `workerId` is the real guard against collisions — signup retries
+ * on a duplicate-key error rather than relying on this read being race-free.
  */
 export async function generateWorkerId() {
   const [latest] = await User.aggregate([

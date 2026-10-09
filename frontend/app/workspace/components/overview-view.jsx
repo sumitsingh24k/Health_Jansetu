@@ -14,7 +14,7 @@ export function OverviewView() {
     summary,
     dashboardAlerts,
     canSeeLocationInsight,
-    canCreateAsha,
+    canViewAshaDirectory,
   } = useWorkspace();
 
   const quickLinks = [
@@ -24,7 +24,7 @@ export function OverviewView() {
     // open, and a quick action that redirects is worse than no quick action.
     { href: "/workspace/reports", label: "Reports", show: canAccessPath(user.role, "/workspace/reports") },
     { href: "/workspace/insights", label: "Area insight", show: canSeeLocationInsight },
-    { href: "/workspace/team", label: "Admin team", show: canCreateAsha },
+    { href: "/workspace/team", label: "Admin team", show: canViewAshaDirectory },
   ].filter((item) => item.show);
 
   return (

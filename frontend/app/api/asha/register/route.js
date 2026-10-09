@@ -6,15 +6,7 @@ import { parseJsonBody, normalizeEmail, normalizeRequiredString } from "@/app/li
 import { logServerError } from "@/app/lib/server-log";
 import { createAshaUser } from "@/app/lib/auth/worker-id";
 
-/**
- * Self-signup for ASHA workers.
- *
- * Created PENDING, not APPROVED. An ASHA's reports are what paint the outbreak map,
- * so an unverified account could raise a fake cluster for a whole village — the admin
- * approval step is the only thing standing between the map and anyone with an email
- * address. The worker id is allocated up front so the admin sees the same identity
- * they would have issued manually.
- */
+/** Self-signup for ASHA workers with an automatically assigned worker ID. */
 export async function POST(request) {
   try {
     const { body, error: parseError } = await parseJsonBody(request);
@@ -64,12 +56,12 @@ export async function POST(request) {
       email,
       password: hashedPassword,
       location: normalizedLocation,
-      status: "PENDING",
+      status: "APPROVED",
     });
 
     return Response.json(
       {
-        message: `Registration bhej diya gaya. Aapka worker ID ${user.workerId} hai. Admin approve karega tabhi login hoga.`,
+        message: `Account ban gaya. Aapka worker ID ${user.workerId} hai. Ab email ya worker ID se login kijiye.`,
         user: {
           id: user._id,
           name: user.name,

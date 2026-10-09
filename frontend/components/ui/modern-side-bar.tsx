@@ -28,6 +28,7 @@ import {
   FileText,
   Sparkles,
   Users,
+  BookOpenText,
 } from "lucide-react";
 import { useT } from "@/app/components/i18n/locale-provider";
 
@@ -59,6 +60,80 @@ const ICONS: Record<string, IconComponent> = {
   reports: FileText,
   insights: Sparkles,
   team: Users,
+};
+
+const QUICK_GUIDES: Record<
+  string,
+  { title: { en: string; hi: string }; steps: { en: string; hi: string }[] }
+> = {
+  ASHA: {
+    title: { en: "ASHA quick guide", hi: "ASHA ke liye chhota guide" },
+    steps: [
+      {
+        en: "Open Reports and tap voice capture. Say the illness, case count, and village; review the filled form, then submit.",
+        hi: "Reports kholkar voice capture dabayein. Bimari, case count aur gaon boliye; form check karke submit karein.",
+      },
+      {
+        en: "Open Map to review reports and risk areas near your village.",
+        hi: "Apne gaon ke reports aur risk wale ilaake dekhne ke liye Map kholiye.",
+      },
+      {
+        en: "Use Trends to see how case counts change over time.",
+        hi: "Samay ke saath case count ka badlav dekhne ke liye Trends kholiye.",
+      },
+    ],
+  },
+  MEDICAL: {
+    title: { en: "Medical shop quick guide", hi: "Medical dukaan ke liye chhota guide" },
+    steps: [
+      {
+        en: "Open My shop and keep medicine quantities and prices up to date.",
+        hi: "My shop kholkar dawai ki quantity aur daam update rakhiye.",
+      },
+      {
+        en: "When handing over an order, enter the customer's pickup code to confirm it.",
+        hi: "Order dete waqt customer ka pickup code daalkar confirm karein.",
+      },
+      {
+        en: "Open Insights to review medicine demand and local health signals.",
+        hi: "Dawai ki demand aur ilaake ke health signals ke liye Insights kholiye.",
+      },
+    ],
+  },
+  USER: {
+    title: { en: "Citizen quick guide", hi: "Nagrik ke liye chhota guide" },
+    steps: [
+      {
+        en: "Tell Sehat Sahayak what symptoms you have to get general guidance.",
+        hi: "Aam salah ke liye Sehat Sahayak ko apne symptoms batayein.",
+      },
+      {
+        en: "If you need medicine, choose a nearby shop and place an order.",
+        hi: "Dawai chahiye to paas ki dukaan chuniye aur order karein.",
+      },
+      {
+        en: "Show the pickup code at the shop to collect your medicine.",
+        hi: "Dawai lene ke liye dukaan par pickup code dikhayein.",
+      },
+    ],
+  },
+  ADMIN: {
+    title: { en: "Admin quick guide", hi: "Admin ke liye chhota guide" },
+    steps: [
+      {
+        en: "Review case totals and alerts on Overview.",
+        hi: "Overview par case total aur alerts dekhein.",
+      },
+      {
+        en: "Use Map filters to inspect a district, village, or illness.",
+        hi: "Zila, gaon ya bimari dekhne ke liye Map filters istemal karein.",
+      },
+      {
+        en: "Compare field reports and medicine movement in Insights.",
+        hi: "Insights mein field reports aur dawai ki movement compare karein.",
+      },
+    ],
+  },
 };
 
 export interface SidebarProps {
@@ -114,6 +189,7 @@ export function Sidebar({ className = "", children, user }: SidebarProps) {
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
   const role = user?.role ?? undefined;
+  const quickGuide = role ? QUICK_GUIDES[role] : undefined;
   const navigationItems = navigationForUser(role);
   const ROLE_LABELS: Record<string, string> = {
     ADMIN: "Admin",
@@ -315,6 +391,27 @@ export function Sidebar({ className = "", children, user }: SidebarProps) {
             })}
           </ul>
         </nav>
+
+        {!isCollapsed && quickGuide ? (
+          <aside className="mx-3 mb-3 rounded-[14px] border border-brand-line bg-brand-tint-2 p-3">
+            <details open>
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-semibold text-ink">
+                <BookOpenText className="h-4 w-4 shrink-0 text-brand" />
+                {t(quickGuide.title.en, quickGuide.title.hi)}
+              </summary>
+              <ol className="mt-2.5 space-y-2.5">
+                {quickGuide.steps.map((step, index) => (
+                  <li key={step.en} className="flex gap-2 text-[11px] leading-relaxed text-muted">
+                    <span className="js-mono shrink-0 text-[10px] font-semibold text-brand">
+                      {index + 1}.
+                    </span>
+                    <span>{t(step.en, step.hi)}</span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </aside>
+        ) : null}
 
         <div className="mt-auto border-t border-line">
           <div

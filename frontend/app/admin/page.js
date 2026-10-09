@@ -3,7 +3,6 @@ import { Panel, ScreenHeader } from "@/app/components/screen-ui";
 
 const JUMP_LINKS = [
   { href: "/workspace", label: "Workspace overview" },
-  { href: "/workspace/reports#pending-approvals", label: "Pending approvals" },
   { href: "/workspace/team", label: "ASHA team" },
   { href: "/workspace/insights", label: "Model insights" },
 ];
@@ -15,7 +14,7 @@ export default function AdminDashboardPage() {
         <ScreenHeader
           kicker="Admin console"
           title="Oversight."
-          subtitle="Approvals, ASHA workers, and system health. The evidence itself lives in the workspace — this page is the way in."
+          subtitle="Review the outbreak picture, ASHA coverage, and system insights from the workspace."
         />
 
         <div className="grid gap-4 sm:grid-cols-2">

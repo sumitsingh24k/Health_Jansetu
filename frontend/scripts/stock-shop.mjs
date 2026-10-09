@@ -66,10 +66,6 @@ if (!shop) {
   process.exit(1);
 }
 
-if (shop.status !== "APPROVED") {
-  console.warn(`Warning: ${email} is ${shop.status}. It cannot log in until an admin approves it.`);
-}
-
 const catalog = await Medicine.find({}).select("sku brand mrp").lean();
 if (!catalog.length) {
   console.error("Medicine catalog is empty. Run `npm run seed:medicines` first.");

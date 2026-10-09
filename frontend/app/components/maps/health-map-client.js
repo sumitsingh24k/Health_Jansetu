@@ -48,19 +48,14 @@ const MAP_BY_ROLE = {
   MEDICAL: { center: [22.9734, 78.6569], zoom: 7 },
   ASHA: { center: [22.9734, 78.6569], zoom: 8 },
 };
+const ESRI_ATTRIBUTION =
+  'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Sources: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, &copy; OpenStreetMap contributors, and the GIS User Community';
 const BASEMAPS = {
-  osm: {
-    id: "osm",
-    label: "Classic",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  },
-  voyager: {
-    id: "voyager",
-    label: "City View",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  esri: {
+    id: "esri",
+    label: "Street Map",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: ESRI_ATTRIBUTION,
   },
   mapbox_streets: {
     id: "mapbox_streets",
@@ -438,7 +433,7 @@ export default function HealthMapClient({
   const [layersOverride, setLayersOverride] = useState(null);
   const layersOpen = layersOverride ?? isWideScreen;
   const [zoomLevel, setZoomLevel] = useState(MAP_BY_ROLE[role]?.zoom || 6);
-  const [baseMap, setBaseMap] = useState(MAPBOX_TOKEN ? "mapbox_streets" : "voyager");
+  const [baseMap, setBaseMap] = useState(MAPBOX_TOKEN ? "mapbox_streets" : "esri");
   const [layers, setLayers] = useState({
     outbreakZones: true,
     riskLabels: true,
@@ -803,12 +798,12 @@ export default function HealthMapClient({
   }, [mapInstance]);
 
   const baseMapOptions = useMemo(() => {
-    const defaults = [BASEMAPS.voyager, BASEMAPS.osm];
+    const defaults = [BASEMAPS.esri];
     if (!MAPBOX_TOKEN) return defaults;
-    return [BASEMAPS.mapbox_streets, BASEMAPS.mapbox_satellite, BASEMAPS.voyager, BASEMAPS.osm];
+    return [BASEMAPS.mapbox_streets, BASEMAPS.mapbox_satellite, BASEMAPS.esri];
   }, []);
 
-  const activeBaseMap = BASEMAPS[baseMap] || BASEMAPS.voyager;
+  const activeBaseMap = BASEMAPS[baseMap] || BASEMAPS.esri;
 
   return (
     <div className="relative h-[460px] w-full overflow-hidden rounded-[18px] border border-line shadow-[0_18px_40px_rgba(18,32,25,0.10)] md:h-[560px]">

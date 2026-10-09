@@ -11,31 +11,25 @@ import { useT } from "@/app/components/i18n/locale-provider";
 
 /**
  * Shared signup form for the three writing roles.
- *
- * ASHA and MEDICAL land as PENDING — their data shapes the outbreak map, so an admin
- * verifies them first. A plain USER is live immediately, because nothing they do moves
- * a number until a shop confirms a pickup.
  */
 const ROLE_CONFIG = {
   ASHA: {
     endpoint: "/api/asha/register",
     heading: { en: "ASHA Worker Registration", hi: "ASHA Worker Registration" },
     blurb: {
-      en: "An admin approves the account before you can sign in. You will be given a worker ID.",
-      hi: "Registration ke baad admin approve karega, tabhi login hoga. Aapko ek worker ID milegi.",
+      en: "Create your account and sign in right away. Your worker ID is assigned automatically.",
+      hi: "Account banakar turant login kijiye. Aapki worker ID apne aap milegi.",
     },
     submitLabel: { en: "Register as ASHA", hi: "ASHA register kijiye" },
-    needsApproval: true,
   },
   MEDICAL: {
     endpoint: "/api/medical/register",
     heading: { en: "Medical Shop Registration", hi: "Medical Shop Registration" },
     blurb: {
-      en: "An admin approves the account before you can sign in. After that you can manage stock and pickups.",
-      hi: "Registration ke baad admin approve karega, tabhi login hoga. Phir aap stock aur pickup manage kar payenge.",
+      en: "Create your account and sign in right away to manage stock and pickups.",
+      hi: "Account banakar turant login kijiye aur stock aur pickup manage kijiye.",
     },
     submitLabel: { en: "Register the shop", hi: "Medical register kijiye" },
-    needsApproval: true,
   },
   USER: {
     endpoint: "/api/user/register",
@@ -45,7 +39,6 @@ const ROLE_CONFIG = {
       hi: "Register kariye aur turant Sehat Sahayak se baat shuru kijiye. Koi approval ka intezaar nahi.",
     },
     submitLabel: { en: "Register", hi: "Register kijiye" },
-    needsApproval: false,
   },
 };
 

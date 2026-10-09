@@ -21,9 +21,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       required: true,
-      // ASHA / MEDICAL / USER are the three field roles. ADMIN exists only to
-      // approve medical shops and issue ASHA worker IDs — without that gate anyone
-      // could register as a shop and inject stock data into the outbreak signal.
+      // ADMIN is reserved for system operators; field roles self-register.
       enum: ["ADMIN", "ASHA", "MEDICAL", "USER"],
     },
     workerId: {
@@ -64,12 +62,7 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["PENDING", "APPROVED"],
-      default() {
-        // Only medical shops wait for approval: their stock numbers feed the
-        // outbreak correlation, so an unverified shop can distort real signals.
-        // Ordinary users sign up and start chatting immediately.
-        return this.role === "MEDICAL" ? "PENDING" : "APPROVED";
-      },
+      default: "APPROVED",
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

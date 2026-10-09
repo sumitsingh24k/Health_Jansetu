@@ -32,7 +32,7 @@ All routes are Next.js route handlers under `app/api/`, all session-guarded via 
 | `POST /api/predictions/outbreak` | Outbreak risk score for an area (reads Mongo directly) |
 | `GET /api/public/area-insight` | Public, no-login area health guide by coordinates |
 | `GET/POST /api/supply`, `/api/supply/recommend` | Medicine stock and supply recommendations |
-| `/api/admin/*` | ASHA creation, pending approvals (ADMIN only) |
+| `/api/admin/*` | ASHA directory and administration (ADMIN only); ASHA and medical accounts self-register |
 | `/api/auth/*` | NextAuth |
 | `/api/location/*` | Area search, Janaushadhi lookup |
 
